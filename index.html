@@ -2,36 +2,63 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบสแกนพัสดุต่อเนื่อง</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบสแกนพัสดุเต็มจอ</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 10px; background-color: #f4f7f6; }
-        #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        #status { margin-top: 15px; font-weight: bold; font-size: 18px; padding: 10px; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; }
-        .scanning { background-color: #fff3cd; color: #856404; }
-        .error { background-color: #f8d7da; color: #721c24; }
+        /* รีเซ็ตขอบหน้าจอและทำให้ไม่สามารถเลื่อนหน้าจอได้ */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; background-color: #000; }
         
-        /* ตกแต่งส่วนประวัติการสแกน */
-        #history-container { max-width: 400px; margin: 20px auto; text-align: left; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        #history-container h3 { margin-top: 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        #history-list { list-style-type: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
-        #history-list li { padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
-        #history-list li span.time { color: #888; font-size: 12px; margin-right: 10px; }
+        /* ตั้งค่ากล้องให้เต็มจอและอยู่เลเยอร์ล่างสุด */
+        #reader { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; z-index: 1; border: none !important; }
+        #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+
+        /* แถบสถานะด้านบน */
+        #status-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; max-width: 400px; text-align: center; }
+        #status { padding: 12px; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: all 0.3s ease; }
+        .success { background-color: rgba(212, 237, 218, 0.95); color: #155724; }
+        .scanning { background-color: rgba(255, 243, 205, 0.95); color: #856404; }
+        .error { background-color: rgba(248, 215, 218, 0.95); color: #721c24; }
+
+        /* ปุ่มดูประวัติด้านขวาล่าง */
+        #btn-history { position: fixed; bottom: 30px; right: 20px; z-index: 10; background: #007bff; color: white; border: none; padding: 12px 20px; border-radius: 30px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        #btn-history:active { transform: scale(0.95); }
+
+        /* หน้าต่าง Popup (Modal) สำหรับดูประวัติ */
+        #history-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 20; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        #history-content { background: white; width: 85%; max-width: 400px; max-height: 70vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        #history-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 10px; }
+        #history-header h3 { margin: 0; font-size: 18px; color: #333; }
+        #btn-close { background: #ff4d4f; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #history-list { list-style-type: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        #history-list li { padding: 12px 0; border-bottom: 1px dashed #eee; font-size: 15px; color: #333; display: flex; flex-direction: column; }
+        #history-list li span.time { color: #888; font-size: 12px; margin-bottom: 4px; }
+        
+        /* ซ่อนปุ่มของ library ที่ไม่จำเป็นหลังกล้องเปิดแล้ว */
+        #reader__dashboard_section_swaplink { display: none !important; }
     </style>
 </head>
 <body>
 
-    <h2>📦 สแกนพัสดุต่อเนื่อง</h2>
-    
     <div id="reader"></div>
-    <div id="status" class="scanning">กำลังรอกล้อง... (พร้อมสแกน)</div>
 
-    <div id="history-container">
-        <h3>ประวัติการสแกนล่าสุด</h3>
-        <ul id="history-list">
-            </ul>
+    <div id="status-container">
+        <div id="status" class="scanning">กำลังรอกล้อง...</div>
+    </div>
+
+    <button id="btn-history" onclick="toggleHistory(true)">
+        🕒 ประวัติ <span id="history-count">(0)</span>
+    </button>
+
+    <div id="history-modal">
+        <div id="history-content">
+            <div id="history-header">
+                <h3>ประวัติการสแกน</h3>
+                <button id="btn-close" onclick="toggleHistory(false)">ปิด</button>
+            </div>
+            <ul id="history-list">
+                </ul>
+        </div>
     </div>
 
     <script>
@@ -39,88 +66,87 @@
         
         let lastScannedCode = "";
         let scanCooldown = false;
+        let scanCount = 0; // ตัวนับจำนวนพัสดุ
 
-        // ฟังก์ชันสร้างเสียง "ติ๊ด"
+        // ฟังก์ชันเปิด-ปิด หน้าต่างประวัติ
+        function toggleHistory(show) {
+            document.getElementById('history-modal').style.display = show ? 'flex' : 'none';
+        }
+
         function playBeep() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 const ctx = new AudioContext();
                 const osc = ctx.createOscillator();
                 osc.type = "sine";
-                osc.frequency.value = 800; // ความถี่เสียง
+                osc.frequency.value = 800; 
                 osc.connect(ctx.destination);
                 osc.start();
-                setTimeout(() => osc.stop(), 150); // ความยาวเสียง 0.15 วินาที
+                setTimeout(() => osc.stop(), 150); 
             } catch (e) {
                 console.log("Audio not supported");
             }
         }
 
-        // ฟังก์ชันเพิ่มรายการลงในหน้าจอ
         function addHistoryRecord(trackingText) {
+            scanCount++; // เพิ่มจำนวน
+            document.getElementById('history-count').innerText = `(${scanCount})`; // อัปเดตตัวเลขที่ปุ่ม
+
             const list = document.getElementById('history-list');
             const listItem = document.createElement('li');
             const now = new Date();
             const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
             
-            listItem.innerHTML = `<span class="time">[${timeString}]</span> <b>${trackingText}</b>`;
-            // เอาแทรกลงด้านบนสุดของรายการ
+            listItem.innerHTML = `<span class="time">เวลา: ${timeString}</span> <b>${trackingText}</b>`;
             list.insertBefore(listItem, list.firstChild);
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // ป้องกันการสแกนซ้ำกล่องเดิมรัวๆ หรือสแกนขณะติด Cooldown
-            if (decodedText === lastScannedCode || scanCooldown) {
-                return; 
-            }
+            if (decodedText === lastScannedCode || scanCooldown) return; 
 
-            // --- เริ่มกระบวนการเมื่อสแกนได้โค้ดใหม่ ---
             scanCooldown = true;
             lastScannedCode = decodedText;
             
-            playBeep(); // เล่นเสียงเตือน
+            playBeep();
             
             const statusDiv = document.getElementById('status');
             statusDiv.innerText = `กำลังบันทึก: ${decodedText}...`;
             statusDiv.className = 'scanning';
 
-            // นำขึ้นแสดงในประวัติทันที
             addHistoryRecord(decodedText);
 
-            // ส่งข้อมูลไป Google Sheet เบื้องหลัง
             fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
                 .then(response => response.text())
                 .then(data => {
-                    statusDiv.innerText = `✅ บันทึกแล้ว (สแกนกล่องต่อไปได้เลย)`;
+                    statusDiv.innerText = `✅ บันทึกแล้ว`;
                     statusDiv.className = 'success';
                 })
                 .catch(error => {
-                    statusDiv.innerText = `❌ เกิดข้อผิดพลาดในการบันทึก`;
+                    statusDiv.innerText = `❌ ข้อผิดพลาดการบันทึก`;
                     statusDiv.className = 'error';
                 });
 
-            // หน่วงเวลา 2.5 วินาที ก่อนที่จะอนุญาตให้สแกน "กล่องเดิม" ซ้ำได้อีกครั้ง (ป้องกันสแกนเบิ้ล)
-            // แต่ระหว่างนี้ถ้าย้ายกล้องไปสแกน "กล่องอื่น" จะยังสแกนไม่ได้จนกว่าจะหมด 1.5 วินาทีแรก
             setTimeout(() => {
                 scanCooldown = false;
-                statusDiv.innerText = `พร้อมสแกนกล่องต่อไป...`;
+                statusDiv.innerText = `พร้อมสแกนกล่องต่อไป`;
                 statusDiv.className = 'scanning';
-            }, 1500); // ดีเลย์ 1.5 วินาที (ปรับเพิ่มลดได้ตามต้องการ)
+            }, 1500);
 
-            // ล้างความจำโค้ดเดิมหลังจาก 5 วินาที (เผื่อต้องสแกนกล่องเดิมจริงๆ ในอนาคต)
             setTimeout(() => {
                 if (lastScannedCode === decodedText) lastScannedCode = "";
             }, 5000);
         }
 
-        function onScanFailure(error) {
-            // ไม่ต้องทำอะไร ปล่อยให้มันค้นหา QR ต่อไป
-        }
+        function onScanFailure(error) {}
 
-        // ตั้งค่ากล้อง (เอาการหยุดกล้องอัตโนมัติออก)
+        // ตั้งค่ากล้องให้ค้นหาขนาดของจอภาพ (aspectRatio)
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "reader",
-            { fps: 10, qrbox: {width: 250, height: 250} },
+            { 
+                fps: 10, 
+                qrbox: {width: 250, height: 250},
+                aspectRatio: window.innerHeight > window.innerWidth ? window.innerHeight / window.innerWidth : window.innerWidth / window.innerHeight
+            },
             false);
             
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
