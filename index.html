@@ -1,1 +1,62 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สแกนเลขพัสดุ</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; }
+        #status { margin-top: 20px; font-weight: bold; color: blue; }
+    </style>
+</head>
+<body>
 
+    <h2>สแกน QR Code พัสดุ</h2>
+    
+    <div id="reader"></div>
+    
+    <div id="status">กำลังรอกล้อง...</div>
+
+    <script>
+        // นำ Web App URL ของ Google Apps Script ที่ก๊อปปี้ไว้มาวางตรงนี้
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // เมื่อสแกนติด ให้หยุดสแกนชั่วคราวเพื่อป้องกันการส่งข้อมูลซ้ำรัวๆ
+            html5QrcodeScanner.clear();
+            document.getElementById('status').innerText = `กำลังบันทึกเลข: ${decodedText}...`;
+            document.getElementById('status').style.color = "orange";
+
+            // ส่งข้อมูลไปที่ Google Apps Script ผ่าน URL (ใช้ GET request)
+            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('status').innerText = `✅ บันทึกสำเร็จ: ${decodedText}`;
+                    document.getElementById('status').style.color = "green";
+                    
+                    // หากต้องการให้เริ่มสแกนใหม่ทันที ให้ลบ // หน้าบรรทัดด้านล่างออก
+                    // setTimeout(() => location.reload(), 2000); 
+                })
+                .catch(error => {
+                    document.getElementById('status').innerText = `❌ เกิดข้อผิดพลาด: ${error}`;
+                    document.getElementById('status').style.color = "red";
+                });
+        }
+
+        function onScanFailure(error) {
+            // ไม่ต้องทำอะไร ปล่อยให้ระบบค้นหา QR ต่อไป
+        }
+
+        // ตั้งค่ากล้องสแกน
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { fps: 10, qrbox: {width: 250, height: 250} },
+            /* verbose= */ false);
+            
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    </script>
+
+</body>
+</html>
