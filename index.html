@@ -97,10 +97,9 @@
             fetch(SCRIPT_URL + '?action=getToday')
                 .then(response => response.json())
                 .then(data => {
-                    // เอาเลขทั้งหมดที่ได้มา ยัดใส่ความจำมือถือ
-                    data.forEach(code => scannedCodes.add(code));
+                    // เอาข้อมูลจาก Sheet มาแปลงเป็น Text พิมพ์ใหญ่ให้หมดก่อนจำใส่เครื่อง
+                    data.forEach(code => scannedCodes.add(String(code).trim().toUpperCase()));
                     
-                    // ปิดหน้าจอโหลด & ปลดล็อคปุ่มสแกน
                     document.getElementById('loading-screen').style.display = 'none';
                     document.getElementById('btn-scan').disabled = false;
                     document.getElementById('status').innerText = `พร้อมแล้ว! พบข้อมูลวันนี้ ${data.length} รายการ`;
@@ -193,28 +192,30 @@
         function onScanSuccess(decodedText) {
             if (isPaused) return;
 
-            // 1. เช็คซ้ำในมือถือ (รวดเร็วทันใจ 0.001 วิ)
-            if (scannedCodes.has(decodedText)) {
-                showDuplicateModal(decodedText);
-                return;
+            // แปลงค่าที่สแกนได้ให้เป็น Text ไม่มีช่องว่าง และเป็นตัวพิมพ์ใหญ่
+            const cleanCode = String(decodedText).trim().toUpperCase();
+
+            // 1. เช็คซ้ำ (ตอนนี้รับรองว่าเทียบตรงกันเป๊ะ)
+            if (scannedCodes.has(cleanCode)) {
+                showDuplicateModal(cleanCode);
+                return; // <--- คำสั่งนี้คือตัวเบรกเบรค! ถ้าซ้ำ มันจะหยุดทำงานบรรทัดล่างทั้งหมด (ไม่เซฟลง Sheet แน่นอน)
             }
 
-            // 2. ถ้าไม่ซ้ำ เดินหน้าต่อทันที (Optimistic Update)
+            // 2. ถ้าไม่ซ้ำ (รอดจากตัวเบรกมาได้) ถึงจะทำงานต่อ
             isPaused = true; 
-            scannedCodes.add(decodedText); // เอาเลขยัดใส่หัวมือถือไว้เลย กันสแกนเบิ้ล
+            scannedCodes.add(cleanCode); 
             playBeep('success');
             
             const statusDiv = document.getElementById('status');
-            statusDiv.innerText = `✅ บันทึกแล้ว: ${decodedText}`;
+            statusDiv.innerText = `✅ บันทึกแล้ว: ${cleanCode}`;
             statusDiv.className = 'status-success';
 
-            addHistoryRecord(decodedText);
+            addHistoryRecord(cleanCode);
 
-            // 3. สั่งเซิร์ฟเวอร์บันทึกข้อมูลแบบเงียบๆ เบื้องหลัง (ไม่ต้องรอโหลดเสร็จ)
-            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
+            // 3. ส่งข้อมูลคลีนๆ ไปบันทึก
+            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(cleanCode))
                 .then(r => r.json()).catch(e => console.log("ส่งข้อมูลหลังบ้านพลาด", e));
 
-            // ปลดล็อคให้สแกนกล่องต่อไปได้ลื่นๆ ใน 1.5 วินาที
             setTimeout(() => {
                 if(document.getElementById('history-modal').style.display !== 'flex' && document.getElementById('duplicate-modal').style.display !== 'flex'){
                     isPaused = false;
