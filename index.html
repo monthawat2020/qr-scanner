@@ -3,57 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สแกนเลขพัสดุ</title>
+    <title>ระบบสแกนพัสดุต่อเนื่อง</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; }
-        #reader { width: 100%; max-width: 400px; margin: 0 auto; }
-        #status { margin-top: 20px; font-weight: bold; color: blue; }
+        body { font-family: sans-serif; text-align: center; padding: 10px; background-color: #f4f7f6; }
+        #reader { width: 100%; max-width: 400px; margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        #status { margin-top: 15px; font-weight: bold; font-size: 18px; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .scanning { background-color: #fff3cd; color: #856404; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        
+        /* ตกแต่งส่วนประวัติการสแกน */
+        #history-container { max-width: 400px; margin: 20px auto; text-align: left; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #history-container h3 { margin-top: 0; font-size: 16px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        #history-list { list-style-type: none; padding: 0; margin: 0; max-height: 200px; overflow-y: auto; }
+        #history-list li { padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 14px; }
+        #history-list li span.time { color: #888; font-size: 12px; margin-right: 10px; }
     </style>
 </head>
 <body>
 
-    <h2>สแกน QR Code พัสดุ</h2>
+    <h2>📦 สแกนพัสดุต่อเนื่อง</h2>
     
     <div id="reader"></div>
-    
-    <div id="status">กำลังรอกล้อง...</div>
+    <div id="status" class="scanning">กำลังรอกล้อง... (พร้อมสแกน)</div>
+
+    <div id="history-container">
+        <h3>ประวัติการสแกนล่าสุด</h3>
+        <ul id="history-list">
+            </ul>
+    </div>
 
     <script>
-        // นำ Web App URL ของ Google Apps Script ที่ก๊อปปี้ไว้มาวางตรงนี้
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
+        
+        let lastScannedCode = "";
+        let scanCooldown = false;
+
+        // ฟังก์ชันสร้างเสียง "ติ๊ด"
+        function playBeep() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                osc.type = "sine";
+                osc.frequency.value = 800; // ความถี่เสียง
+                osc.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), 150); // ความยาวเสียง 0.15 วินาที
+            } catch (e) {
+                console.log("Audio not supported");
+            }
+        }
+
+        // ฟังก์ชันเพิ่มรายการลงในหน้าจอ
+        function addHistoryRecord(trackingText) {
+            const list = document.getElementById('history-list');
+            const listItem = document.createElement('li');
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+            
+            listItem.innerHTML = `<span class="time">[${timeString}]</span> <b>${trackingText}</b>`;
+            // เอาแทรกลงด้านบนสุดของรายการ
+            list.insertBefore(listItem, list.firstChild);
+        }
 
         function onScanSuccess(decodedText, decodedResult) {
-            // เมื่อสแกนติด ให้หยุดสแกนชั่วคราวเพื่อป้องกันการส่งข้อมูลซ้ำรัวๆ
-            html5QrcodeScanner.clear();
-            document.getElementById('status').innerText = `กำลังบันทึกเลข: ${decodedText}...`;
-            document.getElementById('status').style.color = "orange";
+            // ป้องกันการสแกนซ้ำกล่องเดิมรัวๆ หรือสแกนขณะติด Cooldown
+            if (decodedText === lastScannedCode || scanCooldown) {
+                return; 
+            }
 
-            // ส่งข้อมูลไปที่ Google Apps Script ผ่าน URL (ใช้ GET request)
+            // --- เริ่มกระบวนการเมื่อสแกนได้โค้ดใหม่ ---
+            scanCooldown = true;
+            lastScannedCode = decodedText;
+            
+            playBeep(); // เล่นเสียงเตือน
+            
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerText = `กำลังบันทึก: ${decodedText}...`;
+            statusDiv.className = 'scanning';
+
+            // นำขึ้นแสดงในประวัติทันที
+            addHistoryRecord(decodedText);
+
+            // ส่งข้อมูลไป Google Sheet เบื้องหลัง
             fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
                 .then(response => response.text())
                 .then(data => {
-                    document.getElementById('status').innerText = `✅ บันทึกสำเร็จ: ${decodedText}`;
-                    document.getElementById('status').style.color = "green";
-                    
-                    // หากต้องการให้เริ่มสแกนใหม่ทันที ให้ลบ // หน้าบรรทัดด้านล่างออก
-                    // setTimeout(() => location.reload(), 2000); 
+                    statusDiv.innerText = `✅ บันทึกแล้ว (สแกนกล่องต่อไปได้เลย)`;
+                    statusDiv.className = 'success';
                 })
                 .catch(error => {
-                    document.getElementById('status').innerText = `❌ เกิดข้อผิดพลาด: ${error}`;
-                    document.getElementById('status').style.color = "red";
+                    statusDiv.innerText = `❌ เกิดข้อผิดพลาดในการบันทึก`;
+                    statusDiv.className = 'error';
                 });
+
+            // หน่วงเวลา 2.5 วินาที ก่อนที่จะอนุญาตให้สแกน "กล่องเดิม" ซ้ำได้อีกครั้ง (ป้องกันสแกนเบิ้ล)
+            // แต่ระหว่างนี้ถ้าย้ายกล้องไปสแกน "กล่องอื่น" จะยังสแกนไม่ได้จนกว่าจะหมด 1.5 วินาทีแรก
+            setTimeout(() => {
+                scanCooldown = false;
+                statusDiv.innerText = `พร้อมสแกนกล่องต่อไป...`;
+                statusDiv.className = 'scanning';
+            }, 1500); // ดีเลย์ 1.5 วินาที (ปรับเพิ่มลดได้ตามต้องการ)
+
+            // ล้างความจำโค้ดเดิมหลังจาก 5 วินาที (เผื่อต้องสแกนกล่องเดิมจริงๆ ในอนาคต)
+            setTimeout(() => {
+                if (lastScannedCode === decodedText) lastScannedCode = "";
+            }, 5000);
         }
 
         function onScanFailure(error) {
-            // ไม่ต้องทำอะไร ปล่อยให้ระบบค้นหา QR ต่อไป
+            // ไม่ต้องทำอะไร ปล่อยให้มันค้นหา QR ต่อไป
         }
 
-        // ตั้งค่ากล้องสแกน
+        // ตั้งค่ากล้อง (เอาการหยุดกล้องอัตโนมัติออก)
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "reader",
             { fps: 10, qrbox: {width: 250, height: 250} },
-            /* verbose= */ false);
+            false);
             
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
     </script>
