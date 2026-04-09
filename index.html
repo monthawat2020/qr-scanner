@@ -205,46 +205,46 @@
 
         // 6. เมื่อสแกนติด
         function onScanSuccess(decodedText) {
-            // ถ้าติดสถานะพักการสแกน (เปิดประวัติ หรือ ติดแจ้งเตือนซ้ำอยู่) ให้เมินโค้ดนี้ไปเลย
             if (isPaused) return;
 
-            // เช็คว่าเลขนี้เคยสแกนไปหรือยังใน session นี้
-            if (scannedCodes.has(decodedText)) {
-                showDuplicateModal(decodedText);
-                return;
-            }
-
-            // ถ้าเป็นเลขใหม่ เริ่มบันทึก
-            isPaused = true; // ล็อคชั่วคราวกันสแกนรัวๆ
-            scannedCodes.add(decodedText); // จำไว้ว่าสแกนแล้ว
-            playBeep('success');
+            isPaused = true; // ล็อคชั่วคราว
+            playBeep('success'); // ดังติ๊ดรับทราบว่าสแกนติดแล้ว
             
             const statusDiv = document.getElementById('status');
-            statusDiv.innerText = `กำลังบันทึก: ${decodedText}...`;
+            statusDiv.innerText = `กำลังตรวจสอบข้อมูลฐานข้อมูล...`;
             statusDiv.className = 'status-scanning';
 
-            addHistoryRecord(decodedText);
-
+            // ส่งไปถาม Google Sheet
             fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
-                .then(response => response.text())
+                .then(response => response.json()) // รับค่ากลับมาเป็น JSON
                 .then(data => {
-                    statusDiv.innerText = `✅ บันทึกแล้ว: ${decodedText}`;
-                    statusDiv.className = 'status-success';
+                    if (data.status === "duplicate") {
+                        // ถ้า Google Sheet บอกว่าซ้ำ!
+                        statusDiv.innerText = `⚠️ ข้อมูลซ้ำ!`;
+                        statusDiv.className = 'status-wait';
+                        showDuplicateModal(decodedText); // เด้งหน้าต่างเหลือง
+                    } 
+                    else if (data.status === "success") {
+                        // ถ้าผ่านและบันทึกสำเร็จ
+                        statusDiv.innerText = `✅ บันทึกแล้ว: ${decodedText}`;
+                        statusDiv.className = 'status-success';
+                        addHistoryRecord(decodedText); // เพิ่มลงประวัติบนหน้าจอ
+
+                        // ปลดล็อคให้สแกนกล่องต่อไปได้หลังจาก 1.5 วินาที
+                        setTimeout(() => {
+                            if(document.getElementById('history-modal').style.display !== 'flex' && document.getElementById('duplicate-modal').style.display !== 'flex'){
+                                isPaused = false;
+                                statusDiv.innerText = `พร้อมสแกนกล่องต่อไป`;
+                                statusDiv.className = 'status-scanning';
+                            }
+                        }, 1500);
+                    }
                 })
                 .catch(error => {
-                    statusDiv.innerText = `❌ บันทึกพลาด: ${decodedText}`;
+                    statusDiv.innerText = `❌ ตรวจสอบล้มเหลว ลองสแกนใหม่`;
                     statusDiv.className = 'status-wait';
-                    scannedCodes.delete(decodedText); // ถ้า error ให้ลบออก เผื่อให้สแกนซ้ำใหม่
+                    setTimeout(() => { isPaused = false; }, 2000); // ปลดล็อคให้สแกนแก้ตัว
                 });
-
-            // ปลดล็อคให้สแกนกล่องต่อไปได้หลังจาก 1.5 วินาที
-            setTimeout(() => {
-                if(document.getElementById('history-modal').style.display !== 'flex' && document.getElementById('duplicate-modal').style.display !== 'flex'){
-                    isPaused = false;
-                    statusDiv.innerText = `พร้อมสแกนกล่องต่อไป`;
-                    statusDiv.className = 'status-scanning';
-                }
-            }, 1500);
         }
     </script>
 </body>
