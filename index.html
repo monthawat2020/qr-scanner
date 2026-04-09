@@ -3,30 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบสแกนพัสดุ Hybrid</title>
+    <title>ระบบสแกนพัสดุ (จำข้อมูลในเครื่อง)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #111; }
-        
-        /* หน้าจอโหลดข้อมูล (Loading Overlay) */
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: white; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s; }
-        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #111; }
         #reader { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; z-index: 1; }
         #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
 
+        /* หน้าจอโหลดข้อมูลตอนเริ่ม */
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #fff; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         #top-control { position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px; box-sizing: border-box; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); z-index: 10; display: flex; flex-direction: column; gap: 10px; border-bottom: 1px solid rgba(0,0,0,0.1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .control-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
-        
         select { flex-grow: 1; padding: 10px 15px; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; background: white; outline: none; }
-        
-        #btn-scan { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; color: white; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); white-space: nowrap; }
+        #btn-scan { padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; font-size: 15px; color: white; cursor: pointer; transition: 0.3s; white-space: nowrap; }
         .btn-start { background: #28a745; }
-        .btn-start:active { transform: scale(0.95); }
         .btn-stop { background: #dc3545; }
-        .btn-stop:active { transform: scale(0.95); }
-        .btn-disabled { background: #6c757d !important; cursor: not-allowed; }
+        #btn-scan:disabled { background: #6c757d; cursor: not-allowed; }
 
         #status { padding: 8px; border-radius: 6px; font-weight: bold; font-size: 14px; text-align: center; }
         .status-wait { background-color: #e9ecef; color: #495057; }
@@ -52,20 +47,19 @@
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <h3 style="color: #333;">กำลังซิงค์ข้อมูลของวันนี้...</h3>
-        <p id="loading-text" style="color: #666; font-size: 14px;">เชื่อมต่อฐานข้อมูล</p>
+    <div id="loading-screen">
+        <div class="loader"></div>
+        <h3 id="loading-text" style="color: #333;">กำลังดึงข้อมูลพัสดุของวันนี้...</h3>
     </div>
 
     <div id="reader"></div>
 
     <div id="top-control">
         <div class="control-row">
-            <select id="camera-select"><option value="">กำลังหากล้อง...</option></select>
-            <button id="btn-scan" class="btn-start btn-disabled" disabled onclick="toggleScan()">รอโหลดข้อมูล</button>
+            <select id="camera-select"><option value="">กำลังโหลดกล้อง...</option></select>
+            <button id="btn-scan" class="btn-start" onclick="toggleScan()" disabled>เริ่มสแกน</button>
         </div>
-        <div id="status" class="status-wait">ระบบกำลังเตรียมความพร้อม...</div>
+        <div id="status" class="status-wait">ระบบพร้อมใช้งาน (อัปเดตข้อมูลแล้ว)</div>
     </div>
 
     <button id="btn-history" onclick="toggleHistory(true)">🕒 ประวัติ (0)</button>
@@ -83,55 +77,40 @@
     <div id="duplicate-modal">
         <div id="duplicate-content">
             <h2>⚠️ ระวังซ้ำ!</h2>
-            <p>เลขพัสดุ<br><b id="dup-number" style="font-size: 20px; color: #d32f2f;"></b><br>ถูกบันทึกไปแล้ว</p>
+            <p>เลขพัสดุ<br><b id="dup-number" style="font-size: 20px; color: #d32f2f;"></b><br>ถูกสแกนไปแล้วของวันนี้</p>
             <button id="btn-dup-close" onclick="closeDuplicateModal()">รับทราบ</button>
         </div>
     </div>
 
     <script>
-        // ⚠️ เอา URL ใหม่มาใส่ที่นี่!
+        // เปลี่ยน URL เป็นของใหม่ที่เพิ่ง Deploy
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
         
         let html5QrCode;
         let isScanning = false;
         let isPaused = false; 
-        let scannedCodes = new Set(); // ตะกร้าความจำในมือถือ
+        let scannedCodes = new Set(); // ตัวแปรเก็บความจำในมือถือ
         let scanCount = 0;
 
-        // 1. ตอนเปิดเว็บ: ดึงข้อมูลพัสดุวันนี้จาก Google Sheet ก่อน
+        // 1. ดึงข้อมูลของวันนี้จาก Sheet ทันทีที่เปิดเว็บ
         window.onload = () => {
-            fetch(SCRIPT_URL + '?action=load')
-                .then(res => res.json())
+            fetch(SCRIPT_URL + '?action=getToday')
+                .then(response => response.json())
                 .then(data => {
-                    if (data.status === "success") {
-                        // เอาเลขที่ดึงมา ใส่ลงในตะกร้าความจำมือถือ
-                        data.data.forEach(code => {
-                            scannedCodes.add(code);
-                            addHistoryRecord(code, true); // true = เป็นข้อมูลเก่า ไม่ต้องเพิ่มตัวเลขนับสแกนใหม่
-                        });
-                        
-                        document.getElementById('loading-text').innerText = `โหลดข้อมูลสำเร็จ (${data.data.length} รายการ)`;
-                        
-                        // ปิดหน้าจอโหลด & เปิดให้กดเริ่มสแกนได้
-                        setTimeout(() => {
-                            document.getElementById('loading-overlay').style.opacity = '0';
-                            setTimeout(() => document.getElementById('loading-overlay').style.display = 'none', 500);
-                            
-                            const btn = document.getElementById('btn-scan');
-                            btn.innerText = "เริ่มสแกน";
-                            btn.disabled = false;
-                            btn.classList.remove('btn-disabled');
-                            document.getElementById('status').innerText = "พร้อมใช้งาน เลือกกล้องแล้วกดสแกน";
-                        }, 800);
-                    }
+                    // เอาเลขทั้งหมดที่ได้มา ยัดใส่ความจำมือถือ
+                    data.forEach(code => scannedCodes.add(code));
+                    
+                    // ปิดหน้าจอโหลด & ปลดล็อคปุ่มสแกน
+                    document.getElementById('loading-screen').style.display = 'none';
+                    document.getElementById('btn-scan').disabled = false;
+                    document.getElementById('status').innerText = `พร้อมแล้ว! พบข้อมูลวันนี้ ${data.length} รายการ`;
                 })
-                .catch(err => {
-                    document.getElementById('loading-text').innerText = "❌ เชื่อมต่อล้มเหลว กรุณารีเฟรชหน้าเว็บ";
+                .catch(error => {
+                    document.getElementById('loading-text').innerText = "โหลดข้อมูลล้มเหลว กรุณารีเฟรชหน้าเว็บ";
                     document.getElementById('loading-text').style.color = "red";
                 });
         };
 
-        // 2. ดึงรายชื่อกล้อง
         Html5Qrcode.getCameras().then(devices => {
             const cameraSelect = document.getElementById('camera-select');
             if (devices && devices.length) {
@@ -149,106 +128,100 @@
             }
         });
 
-        // ฟังก์ชันพื้นฐาน
-        function toggleHistory(show) { document.getElementById('history-modal').style.display = show ? 'flex' : 'none'; isPaused = show; }
-        function showDuplicateModal(code) { isPaused = true; document.getElementById('dup-number').innerText = code; document.getElementById('duplicate-modal').style.display = 'flex'; playBeep('error'); }
-        function closeDuplicateModal() { document.getElementById('duplicate-modal').style.display = 'none'; setTimeout(() => { isPaused = false; }, 1000); }
-        
-        function playBeep(type = 'success') {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                osc.type = type === 'success' ? "sine" : "sawtooth";
-                osc.frequency.value = type === 'success' ? 800 : 200;
-                osc.connect(ctx.destination);
-                osc.start(); setTimeout(() => osc.stop(), type === 'success' ? 150 : 400); 
-            } catch (e) {}
-        }
-
-        function addHistoryRecord(trackingText, isHistoryLoad = false) {
-            if(!isHistoryLoad) {
-                scanCount++;
-                document.getElementById('btn-history').innerText = `🕒 ประวัติ (${scanCount})`;
-            }
-            const list = document.getElementById('history-list');
-            const li = document.createElement('li');
-            const timeStr = new Date().toLocaleTimeString('th-TH');
-            li.innerHTML = `<span>เวลา: ${isHistoryLoad ? 'ดึงจากฐานข้อมูล' : timeStr}</span> <b>${trackingText}</b>`;
-            list.insertBefore(li, list.firstChild);
-        }
-
         function toggleScan() {
             const cameraId = document.getElementById('camera-select').value;
             const btn = document.getElementById('btn-scan');
             const statusDiv = document.getElementById('status');
 
-            if (!cameraId) return alert("กรุณาเลือกกล้อง");
-
             if (!isScanning) {
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
                 html5QrCode.start(cameraId, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, () => {})
                 .then(() => {
-                    isScanning = true; btn.innerText = "หยุดสแกน"; btn.className = "btn-stop";
-                    statusDiv.innerText = "กล้องพร้อม! หันไปที่ QR Code เลย"; statusDiv.className = "status-scanning";
-                    document.getElementById('camera-select').disabled = true;
+                    isScanning = true;
+                    btn.innerText = "หยุดสแกน";
+                    btn.className = "btn-stop";
+                    statusDiv.innerText = "กล้องพร้อม! หันไปที่ QR Code เลย";
+                    statusDiv.className = "status-scanning";
                 });
             } else {
                 html5QrCode.stop().then(() => {
-                    isScanning = false; btn.innerText = "เริ่มสแกน"; btn.className = "btn-start";
-                    statusDiv.innerText = "กล้องปิดอยู่"; statusDiv.className = "status-wait";
-                    document.getElementById('camera-select').disabled = false;
+                    isScanning = false;
+                    btn.innerText = "เริ่มสแกน";
+                    btn.className = "btn-start";
+                    statusDiv.innerText = "กล้องปิดอยู่";
+                    statusDiv.className = "status-wait";
                 });
             }
         }
 
-        // 3. เมื่อสแกนติด
+        function toggleHistory(show) { document.getElementById('history-modal').style.display = show ? 'flex' : 'none'; isPaused = show; }
+        
+        function showDuplicateModal(code) {
+            isPaused = true;
+            document.getElementById('dup-number').innerText = code;
+            document.getElementById('duplicate-modal').style.display = 'flex';
+            playBeep('error');
+        }
+
+        function closeDuplicateModal() {
+            document.getElementById('duplicate-modal').style.display = 'none';
+            setTimeout(() => { isPaused = false; }, 1000); 
+        }
+
+        function playBeep(type = 'success') {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.type = type === 'success' ? "sine" : "sawtooth";
+                osc.frequency.value = type === 'success' ? 800 : 200; 
+                osc.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), type === 'success' ? 150 : 400); 
+            } catch (e) {}
+        }
+
+        function addHistoryRecord(trackingText) {
+            scanCount++;
+            document.getElementById('btn-history').innerText = `🕒 ประวัติเพิ่มใหม่ (${scanCount})`;
+            const list = document.getElementById('history-list');
+            const li = document.createElement('li');
+            li.innerHTML = `<span>เวลา: ${new Date().toLocaleTimeString('th-TH')}</span> <b>${trackingText}</b>`;
+            list.insertBefore(li, list.firstChild);
+        }
+
+        // --- หัวใจสำคัญของการสแกน ---
         function onScanSuccess(decodedText) {
             if (isPaused) return;
 
-            // [ด่านที่ 1] เช็คจากความจำในมือถือก่อน (เร็วมาก ไม่ต้องใช้เน็ต)
+            // 1. เช็คซ้ำในมือถือ (รวดเร็วทันใจ 0.001 วิ)
             if (scannedCodes.has(decodedText)) {
                 showDuplicateModal(decodedText);
                 return;
             }
 
-            // ถ้าผ่านด่านแรก ล็อคสแกนและส่งข้อมูลขึ้นเน็ต
+            // 2. ถ้าไม่ซ้ำ เดินหน้าต่อทันที (Optimistic Update)
             isPaused = true; 
+            scannedCodes.add(decodedText); // เอาเลขยัดใส่หัวมือถือไว้เลย กันสแกนเบิ้ล
             playBeep('success');
             
             const statusDiv = document.getElementById('status');
-            statusDiv.innerText = `กำลังบันทึก: ${decodedText}...`;
-            statusDiv.className = 'status-scanning';
+            statusDiv.innerText = `✅ บันทึกแล้ว: ${decodedText}`;
+            statusDiv.className = 'status-success';
 
-            // เอาเข้าตะกร้าความจำมือถือไว้เลย (ทำให้กล่องถัดไปเช็คซ้ำได้ทันที)
-            scannedCodes.add(decodedText);
             addHistoryRecord(decodedText);
 
-            // [ด่านที่ 2] ส่งไปบันทึก (ใช้วิธี save แบบเบื้องหลัง ไม่ต้องรอให้เสร็จค่อยสแกนต่อ)
-            fetch(SCRIPT_URL + '?action=save&tracking=' + encodeURIComponent(decodedText))
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === "duplicate") {
-                        // ถ้ายอดชนกับเครื่องอื่นพอดี
-                        statusDiv.innerText = `⚠️ ข้อมูลซ้ำจากเครื่องอื่น`;
-                        statusDiv.className = 'status-wait';
-                    } else {
-                        statusDiv.innerText = `✅ บันทึกเสร็จสมบูรณ์`;
-                        statusDiv.className = 'status-success';
-                    }
-                })
-                .catch(err => {
-                    statusDiv.innerText = `❌ เน็ตหลุด: ข้อมูลค้างในมือถือ`;
-                    statusDiv.className = 'status-wait';
-                });
+            // 3. สั่งเซิร์ฟเวอร์บันทึกข้อมูลแบบเงียบๆ เบื้องหลัง (ไม่ต้องรอโหลดเสร็จ)
+            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(decodedText))
+                .then(r => r.json()).catch(e => console.log("ส่งข้อมูลหลังบ้านพลาด", e));
 
-            // ปลดล็อคให้สแกนกล่องที่ 2 ได้ทันทีหลังจาก 1.2 วินาที (ไม่ต้องรอเน็ต)
+            // ปลดล็อคให้สแกนกล่องต่อไปได้ลื่นๆ ใน 1.5 วินาที
             setTimeout(() => {
                 if(document.getElementById('history-modal').style.display !== 'flex' && document.getElementById('duplicate-modal').style.display !== 'flex'){
                     isPaused = false;
                     statusDiv.innerText = `พร้อมสแกนกล่องต่อไป`;
                     statusDiv.className = 'status-scanning';
                 }
-            }, 1200);
+            }, 1500);
         }
     </script>
 </body>
