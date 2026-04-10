@@ -94,62 +94,104 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
+        
+        // ดึงชื่อขนส่งจาก URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedShipping = urlParams.get('shipping');
+        
         let html5QrCode;
-        let scannedCodes = new Set();
+        let targetTracks = new Set();    // รายการทั้งหมดที่ต้องสแกน
+        let scannedToday = new Set();    // รายการที่สแกนสำเร็จแล้ว
         let isPaused = false;
-
+    
         window.onload = () => {
-            fetch(SCRIPT_URL + '?action=getToday').then(r => r.json()).then(data => {
-                scannedCodes = new Set(data.map(c => String(c).trim().toUpperCase()));
-                document.getElementById('scan-status-box').innerText = "พร้อมสแกน";
-                startCamera();
-            });
+            if (!selectedShipping) {
+                alert("ไม่พบข้อมูลขนส่ง กรุณากลับไปเลือกใหม่");
+                location.href = 'orders.html';
+                return;
+            }
+            
+            document.getElementById('scan-status-box').innerText = "กำลังโหลดข้อมูล...";
+            
+            // โหลดข้อมูลเทียบจากฐานข้อมูล
+            fetch(`${SCRIPT_URL}?action=getScannerData&shipping=${encodeURIComponent(selectedShipping)}`)
+                .then(r => r.json())
+                .then(data => {
+                    targetTracks = new Set(data.target.map(t => t.toUpperCase()));
+                    // กรองเฉพาะรายการสแกนของวันนี้ที่ "ตรงกับขนส่งที่เลือก"
+                    data.scanned.forEach(t => {
+                        if(targetTracks.has(t)) scannedToday.add(t);
+                    });
+                    
+                    updateCounter();
+                    startCamera();
+                });
         };
-
+    
+        function updateCounter() {
+            const box = document.getElementById('scan-status-box');
+            box.innerText = `[${selectedShipping}] ${scannedToday.size} / ${targetTracks.size}`;
+            box.style.color = "black";
+        }
+    
+        function onScanSuccess(decodedText) {
+            if (isPaused) return;
+            const code = String(decodedText).trim().toUpperCase();
+    
+            // 1. ตรวจสอบว่ามีในรายการที่ต้องสแกนไหม
+            if (!targetTracks.has(code)) {
+                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f"); // สีแดง
+                return;
+            }
+    
+            // 2. ตรวจสอบว่าซ้ำไหม
+            if (scannedToday.has(code)) {
+                handleError("⚠️ สแกนซ้ำไปแล้ว!", "#fa8c16"); // สีส้ม/เหลือง
+                return;
+            }
+    
+            // 3. กรณีสแกนสำเร็จ (เจอและไม่ซ้ำ)
+            isPaused = true;
+            scannedToday.add(code);
+            playBeep('success');
+            
+            const box = document.getElementById('scan-status-box');
+            box.innerText = `✅ บันทึกแล้ว: ${code}`;
+            box.style.color = "var(--success)";
+            
+            // บันทึกลง check TN (Timestamp, Tracking ID)
+            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
+    
+            setTimeout(() => {
+                isPaused = false;
+                updateCounter();
+            }, 1500);
+        }
+    
+        function handleError(msg, bgColor) {
+            isPaused = true;
+            playBeep('error');
+            
+            // เปลี่ยนพื้นหลังหน้าจอเป็นสีตาม Error
+            const overlay = document.getElementById('scanner-overlay') || document.body;
+            const originalBG = overlay.style.background;
+            overlay.style.background = bgColor;
+    
+            document.getElementById('dup-text').innerText = msg;
+            document.getElementById('dup-modal').style.display = 'flex';
+        }
+    
+        function closeDup() {
+            document.getElementById('dup-modal').style.display = 'none';
+            document.body.style.background = "#000"; // รีเซ็ตพื้นหลังเป็นสีดำปกติ
+            setTimeout(() => { isPaused = false; }, 500);
+        }
+    
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
         }
-
-        function toggleHistory(show) {
-            document.getElementById('history-modal').style.display = show ? 'flex' : 'none';
-            isPaused = show;
-            if(show) {
-                const list = document.getElementById('history-list');
-                const arr = Array.from(scannedCodes).reverse();
-                list.innerHTML = arr.length ? arr.map(c => `<li>✅ ${c}</li>`).join('') : '<li style="text-align:center; color:#999; border:none;">ยังไม่มีข้อมูล</li>';
-            }
-        }
-
-        function onScanSuccess(decodedText) {
-            if (isPaused) return;
-            const code = String(decodedText).trim().toUpperCase();
-
-            if (scannedCodes.has(code)) {
-                isPaused = true;
-                playBeep('error');
-                document.getElementById('dup-text').innerText = "เลขพัสดุ " + code + "\nสแกนไปแล้ว";
-                document.getElementById('dup-modal').style.display = 'flex';
-                return;
-            }
-
-            isPaused = true;
-            scannedCodes.add(code);
-            playBeep('success');
-            document.getElementById('scan-status-box').innerText = "✅ บันทึก: " + code;
-            document.getElementById('scan-status-box').style.color = "var(--success)";
-            
-            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
-
-            setTimeout(() => {
-                if(document.getElementById('history-modal').style.display !== 'flex' && document.getElementById('dup-modal').style.display !== 'flex') {
-                    isPaused = false;
-                    document.getElementById('scan-status-box').innerText = "พร้อมสแกน";
-                    document.getElementById('scan-status-box').style.color = "black";
-                }
-            }, 1500);
-        }
-
+    
         function playBeep(type) {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
@@ -157,12 +199,7 @@
             osc.frequency.value = type === 'success' ? 800 : 200;
             osc.connect(ctx.destination);
             osc.start();
-            setTimeout(() => osc.stop(), 150);
-        }
-
-        function closeDup() {
-            document.getElementById('dup-modal').style.display = 'none';
-            setTimeout(() => isPaused = false, 500);
+            setTimeout(() => osc.stop(), 200);
         }
     </script>
 </body>
