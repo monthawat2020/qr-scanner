@@ -2,182 +2,41 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบหลังบ้าน v2</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการหลังบ้าน</title>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --bg: #f8f9fa; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', sans-serif; background-color: var(--bg); }
+        :root { --primary: #007bff; --bg: #f4f7f6; }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { text-align: center; padding: 20px; width: 90%; max-width: 400px; }
+        .logo { font-size: 80px; margin-bottom: 10px; }
+        h1 { color: #333; margin-bottom: 30px; }
         
-        /* การจัดการหน้าจอ (View) */
-        .view { display: none; width: 100%; height: 100vh; overflow-y: auto; box-sizing: border-box; }
-        .view.active { display: block; }
-
-        /* --- หน้า HOME --- */
-        #home-view { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; }
-        .logo-box { font-size: 60px; margin-bottom: 20px; }
-        .main-btn { background: white; color: var(--primary); border: none; padding: 20px 40px; border-radius: 50px; font-size: 20px; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer; transition: 0.3s; }
-        .main-btn:active { transform: scale(0.95); }
-
-        /* --- หน้าระบบจัดการคำสั่งซื้อ --- */
-        #order-view { padding: 20px; }
-        .header-nav { display: flex; align-items: center; margin-bottom: 20px; gap: 10px; }
-        .btn-back { background: none; border: none; font-size: 24px; cursor: pointer; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; }
-        .stat-card h4 { margin: 0; color: #666; font-size: 14px; }
-        .stat-card p { margin: 10px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
-
-        /* ปุ่มลอยสแกน (FAB) */
-        .fab-scan { position: fixed; bottom: 30px; right: 20px; background: var(--success); color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 30px; box-shadow: 0 6px 15px rgba(40, 167, 69, 0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 10; }
-
-        /* --- หน้าจอแสกนเนอร์ (ทับหน้าเดิม) --- */
-        #scanner-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 100; }
-        #reader { width: 100%; height: 100%; }
-        .scan-ui-top { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 110; width: 80%; }
-        #scan-status { padding: 12px; border-radius: 30px; text-align: center; font-weight: bold; background: rgba(255,255,255,0.9); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .btn-close-scan { position: absolute; top: 20px; right: 20px; background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 10px; z-index: 110; font-weight: bold; }
-
-        /* แจ้งเตือนซ้ำ */
-        #dup-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 200; justify-content:center; align-items:center; }
-        .dup-box { background: #ffeb3b; padding: 30px; border-radius: 20px; text-align: center; width: 80%; border: 4px solid #ff9800; }
+        /* ปุ่มเมนู */
+        .menu-btn { 
+            display: flex; align-items: center; justify-content: center; gap: 15px;
+            width: 100%; padding: 20px; margin-bottom: 15px;
+            background: white; color: #333; text-decoration: none;
+            border-radius: 15px; font-size: 18px; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: 0.3s;
+        }
+        .menu-btn:active { transform: scale(0.98); background: #eee; }
+        .menu-btn i { font-size: 24px; }
+        
+        /* สไตล์ปุ่มเด่นๆ */
+        .btn-order { border-left: 8px solid var(--primary); }
     </style>
 </head>
 <body>
 
-    <section id="home-view" class="view active">
-        <div class="logo-box">📦</div>
-        <h1>ยินดีต้อนรับ</h1>
-        <p>ระบบบริหารจัดการหลังบ้าน</p>
-        <br>
-        <button class="main-btn" onclick="showView('order-view')">ระบบจัดการคำสั่งซื้อ</button>
-    </section>
+    <div class="container">
+        <div class="logo">📦</div>
+        <h1>Main Menu</h1>
+        
+        <a href="orders.html" class="menu-btn btn-order">
+            <span>📦 ระบบจัดการคำสั่งซื้อ</span>
+        </a>
 
-    <section id="order-view" class="view">
-        <div class="header-nav">
-            <button class="btn-back" onclick="showView('home-view')">←</button>
-            <h2 style="margin:0;">จัดการคำสั่งซื้อ</h2>
         </div>
 
-        <div class="dashboard">
-            <div class="stat-card">
-                <h4>รายการวันนี้</h4>
-                <p id="stat-total">0</p>
-            </div>
-            <div class="stat-card">
-                <h4>สแกนแล้ว</h4>
-                <p id="stat-scanned" style="color: var(--success);">0</p>
-            </div>
-        </div>
-
-        <div id="order-list-container">
-            <h3 style="color: #444;">รายการสแกนล่าสุด</h3>
-            <div id="recent-list" style="background: white; border-radius: 15px; padding: 10px;">
-                <p style="text-align:center; color: #999;">ยังไม่มีข้อมูล</p>
-            </div>
-        </div>
-
-        <button class="fab-scan" onclick="openScanner()">📷</button>
-    </section>
-
-    <div id="scanner-overlay">
-        <button class="btn-close-scan" onclick="closeScanner()">ปิด X</button>
-        <div class="scan-ui-top">
-            <div id="scan-status">กำลังเปิดกล้อง...</div>
-        </div>
-        <div id="reader"></div>
-    </div>
-
-    <div id="dup-modal">
-        <div class="dup-box">
-            <h2 style="color:#d84315;">⚠️ ข้อมูลซ้ำ!</h2>
-            <p id="dup-text" style="font-size: 18px;"></p>
-            <button onclick="closeDup()" style="padding:10px 30px; border-radius:20px; border:none; background:#333; color:white; font-weight:bold;">รับทราบ</button>
-        </div>
-    </div>
-
-    <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        let html5QrCode;
-        let scannedCodes = new Set();
-        let isPaused = false;
-
-        // ฟังก์ชันสลับหน้าจอ
-        function showView(viewId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            if(viewId === 'order-view') loadData(); // โหลดข้อมูลทุกครั้งที่เข้าหน้าจัดการ
-        }
-
-        // โหลดข้อมูลจาก Google Sheet
-        function loadData() {
-            fetch(SCRIPT_URL + '?action=getToday')
-                .then(r => r.json())
-                .then(data => {
-                    scannedCodes = new Set(data.map(c => String(c).trim().toUpperCase()));
-                    updateDashboard();
-                });
-        }
-
-        function updateDashboard() {
-            document.getElementById('stat-scanned').innerText = scannedCodes.size;
-            // ตัวอย่างรายการในลิสต์ (เอา 5 อันล่าสุด)
-            const list = document.getElementById('recent-list');
-            if (scannedCodes.size > 0) {
-                const arr = Array.from(scannedCodes).reverse().slice(0, 5);
-                list.innerHTML = arr.map(code => `<div style="padding:10px; border-bottom:1px solid #eee;">✅ ${code}</div>`).join('');
-            }
-        }
-
-        // --- ส่วนของแสกนเนอร์ ---
-        function openScanner() {
-            document.getElementById('scanner-overlay').style.display = 'block';
-            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            
-            // เลือกใช้กล้องหลังโดยอัตโนมัติ
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
-        }
-
-        function closeScanner() {
-            if (html5QrCode) {
-                html5QrCode.stop().then(() => {
-                    document.getElementById('scanner-overlay').style.display = 'none';
-                });
-            }
-        }
-
-        function onScanSuccess(decodedText) {
-            if (isPaused) return;
-            const code = String(decodedText).trim().toUpperCase();
-
-            if (scannedCodes.has(code)) {
-                isPaused = true;
-                document.getElementById('dup-text').innerText = "เลขพัสดุ " + code + "\nถูกสแกนไปแล้วของวันนี้";
-                document.getElementById('dup-modal').style.display = 'flex';
-                return;
-            }
-
-            // ถ้าไม่ซ้ำ
-            isPaused = true;
-            scannedCodes.add(code);
-            document.getElementById('scan-status').innerText = "✅ บันทึกแล้ว: " + code;
-            document.getElementById('scan-status').style.color = "green";
-            
-            // ส่งบันทึกหลังบ้าน
-            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
-            updateDashboard();
-
-            setTimeout(() => {
-                isPaused = false;
-                document.getElementById('scan-status').innerText = "พร้อมสแกนต่อไป...";
-                document.getElementById('scan-status').style.color = "black";
-            }, 1500);
-        }
-
-        function closeDup() {
-            document.getElementById('dup-modal').style.display = 'none';
-            setTimeout(() => isPaused = false, 500);
-        }
-    </script>
 </body>
 </html>
