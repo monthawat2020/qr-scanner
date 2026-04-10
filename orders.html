@@ -77,12 +77,14 @@
         let detectedPlatform = "";
 
         window.onload = () => {
-            // โหลดสถิติสแกน
-            fetch(SCRIPT_URL + '?action=getToday')
+            // โหลดสถิติรวมของทั้งระบบ (Optional: ถ้าต้องการให้หน้าแรกโชว์ยอดรวม Picked up ทั้งหมด)
+            fetch(SCRIPT_URL + '?action=getTodayStats')
                 .then(r => r.json())
-                .then(data => document.getElementById('stat-scanned').innerText = data.length);
+                .then(data => {
+                    document.getElementById('stat-total').innerText = data.total;
+                    document.getElementById('stat-scanned').innerText = data.pickedUp;
+                });
             
-            // โหลดรายชื่อขนส่ง
             loadAllShippingProviders();
         };
 
@@ -161,29 +163,51 @@
             const shipping = document.getElementById('shipping-select').value;
             const listArea = document.getElementById('order-list-area');
             const totalCard = document.getElementById('stat-total');
-
-            if (!shipping) { listArea.innerHTML = ''; totalCard.innerText = '0'; return; }
-
-            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลด...</p>';
-
+            const scannedCard = document.getElementById('stat-scanned');
+        
+            if (!shipping) {
+                listArea.innerHTML = '';
+                totalCard.innerText = '0';
+                scannedCard.innerText = '0';
+                return;
+            }
+        
+            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังกรองข้อมูล...</p>';
+        
             fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
                 .then(res => res.json())
                 .then(orders => {
-                    totalCard.innerText = orders.length;
+                    // 🎯 กรองเฉพาะสถานะ Picked up เพื่อไปแสดงในช่อง "แสกนแล้ว"
+                    const pickedUpOrders = orders.filter(o => o.status === 'Picked up');
+                    
+                    totalCard.innerText = orders.length;      // เป้าหมายวันนี้ (ทั้งหมดของขนส่งนี้)
+                    scannedCard.innerText = pickedUpOrders.length; // แสกนแล้ว (เฉพาะที่ Picked up)
+        
                     if (orders.length === 0) {
-                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบออเดอร์</p>';
+                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบรายการออเดอร์</p>';
                         return;
                     }
+        
+                    // แสดงรายการออเดอร์ทั้งหมดในลิสต์ (หรือจะเลือกโชว์เฉพาะ Picked up ก็ได้)
                     listArea.innerHTML = orders.map(order => `
-                        <div class="order-item">
-                            <div style="grid-column: span 2;">
-                                <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
-                                <span style="margin-left:5px; font-weight:bold;">${order.shipping}</span>
+                        <div class="order-item" style="border-left: 5px solid ${order.status === 'Picked up' ? 'var(--success)' : '#ddd'}">
+                            <div style="grid-column: span 2; display: flex; justify-content: space-between;">
+                                <div>
+                                    <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
+                                    <span style="margin-left:5px; font-weight:bold;">${order.shipping}</span>
+                                </div>
+                                <div style="font-size: 11px; font-weight: bold; color: ${order.status === 'Picked up' ? 'var(--success)' : '#888'}">
+                                    ${order.status === 'Picked up' ? '● SCAN DONE' : '○ PENDING'}
+                                </div>
                             </div>
                             <div>เลขพัสดุ:<br><b>${order.tracking}</b></div>
-                            <div style="text-align:right;">สถานะ:<br><span style="color:var(--primary)">${order.status}</span></div>
+                            <div style="text-align:right;">สถานะ:<br><b style="color:${order.status === 'Picked up' ? 'var(--success)' : '#555'}">${order.status}</b></div>
                         </div>
                     `).join('');
+                })
+                .catch(err => {
+                    console.error(err);
+                    listArea.innerHTML = '<p style="text-align:center; color:red;">โหลดข้อมูลล้มเหลว</p>';
                 });
         }
     </script>
