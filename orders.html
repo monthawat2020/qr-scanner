@@ -5,43 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการคำสั่งซื้อ</title>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --bg: #f0f2f5; }
+        :root { --primary: #007bff; --success: #28a745; --bg: #f0f2f5; --shopee: #ee4d2d; --tiktok: #000; }
         body, html { margin: 0; padding: 0; min-height: 100dvh; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; }
         .header { background: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .content { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         
+        /* Dashboard */
         .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .card { background: white; padding: 20px 10px; border-radius: 18px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
+        .card h4 { margin: 0; font-size: 12px; color: #666; }
         .card p { margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
 
-        /* ส่วนอัปโหลดไฟล์ */
-        .upload-section { background: white; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+        /* Sections */
+        .section { background: white; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        /* Upload */
         #file-input { display: none; }
         .btn-upload { display: inline-block; padding: 12px 25px; background: #6f42c1; color: white; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .file-info { margin-top: 10px; font-size: 13px; color: #666; }
-
-        .btn-go-scan { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: var(--success); color: white; text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); }
-
-        /* ส่วนแสดงรายการ */
-        .order-list-section { margin-top: 10px; flex-grow: 1; overflow-y: auto; }
+        
+        /* Order List */
+        .order-list-area { margin-top: 5px; flex-grow: 1; }
         .order-item { 
             background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px;
             display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #eee;
         }
-        .order-item div { font-size: 13px; color: #666; }
-        .order-item b { color: #333; font-size: 14px; }
-        .tag { padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; }
-        .tag-tiktok { background: #000; color: #fff; }
-        .tag-shopee { background: #ee4d2d; color: #fff; }
-    
+        .tag { padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; color: #fff; }
+        .tag-tiktok { background: var(--tiktok); }
+        .tag-shopee { background: var(--shopee); }
+
+        .btn-go-scan { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: var(--success); color: white; text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold; position: sticky; bottom: 20px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <a href="index.html" style="text-decoration:none; color:#333;">⬅</a>
-        <h2 style="margin:0; font-size: 18px;">ระบบจัดการคำสั่งซื้อ</h2>
+        <h2 style="margin:0; font-size: 18px;">จัดการคำสั่งซื้อ</h2>
     </div>
 
     <div class="content">
@@ -50,32 +50,25 @@
             <div class="card"><h4>สแกนแล้ว</h4><p id="stat-scanned">0</p></div>
         </div>
 
-        <div class="upload-section">
-            <h3 style="margin:0 0 10px 0; font-size: 16px;">📁 นำเข้าข้อมูลคำสั่งซื้อ</h3>
+        <div class="section" style="text-align: center;">
+            <h3 style="margin:0 0 10px 0; font-size: 16px;">📁 นำเข้าข้อมูล</h3>
             <label for="file-input" class="btn-upload">เลือกไฟล์ CSV</label>
             <input type="file" id="file-input" accept=".csv" onchange="handleFile(this)">
-            <div id="file-info" class="file-info">ยังไม่ได้เลือกไฟล์</div>
-            <button id="submit-upload" style="display:none; margin-top:15px; width:100%; padding:10px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold;" onclick="uploadToServer()">เริ่มอัปโหลดเข้า Sheet</button>
+            <div id="file-info" style="margin-top:10px; font-size:12px; color:#666;">ยังไม่ได้เลือกไฟล์</div>
+            <button id="submit-upload" style="display:none; margin-top:15px; width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold;" onclick="uploadToServer()">เริ่มอัปโหลด</button>
         </div>
 
-        <div class="filter-section" style="background: white; padding: 20px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-            <h3 style="margin: 0 0 15px 0; font-size: 16px; color: #444;">🔍 ค้นหาคำสั่งซื้อ</h3>
-            
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <div>
-                    <label style="font-size: 12px; color: #888;">เลือกขนส่ง</label>
-                    <select id="shipping-select" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none;">
-                        <option value="">กำลังโหลดรายชื่อขนส่ง...</option>
-                    </select>
-                    <div id="order-list-area" class="order-list-section">
-                    </div>
-                </div>
+        <div class="section">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px;">🔍 กรองตามขนส่ง</h3>
+            <select id="shipping-select" onchange="loadOrdersData()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none;">
+                <option value="">กำลังโหลดรายชื่อขนส่ง...</option>
+            </select>
+        </div>
+
+        <div id="order-list-area" class="order-list-area">
             </div>
 
-        </div>
-
         <a href="scanner.html" class="btn-go-scan">📷 เปิดกล้องสแกนพัสดุ</a>
-        
     </div>
 
     <script>
@@ -83,55 +76,52 @@
         let parsedData = [];
         let detectedPlatform = "";
 
-        // 1. ตรวจสอบไฟล์และการแยกแพลตฟอร์ม
+        window.onload = () => {
+            // โหลดสถิติสแกน
+            fetch(SCRIPT_URL + '?action=getToday')
+                .then(r => r.json())
+                .then(data => document.getElementById('stat-scanned').innerText = data.length);
+            
+            // โหลดรายชื่อขนส่ง
+            loadAllShippingProviders();
+        };
+
+        // --- ส่วนที่ 1: การจัดการไฟล์ ---
         function handleFile(input) {
             const file = input.files[0];
             if (!file) return;
-
             const fileName = file.name.toLowerCase();
             document.getElementById('file-info').innerText = `ไฟล์: ${file.name}`;
+            detectedPlatform = fileName.includes('tiktok') ? 'tiktok' : (fileName.includes('shopee') ? 'shopee' : "");
             
-            // แยกแพลตฟอร์มตามชื่อไฟล์ yymmdd-platform-x
-            if (fileName.includes('tiktok')) detectedPlatform = 'tiktok';
-            else if (fileName.includes('shopee')) detectedPlatform = 'shopee';
-            else {
-                alert("ไม่สามารถระบุแพลตฟอร์มได้ กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee");
+            if (!detectedPlatform) {
+                alert("กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee");
                 return;
             }
 
-            // อ่านข้อมูลในไฟล์ (CSV)
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                parsedData = parseCSV(text);
+            reader.onload = (e) => {
+                parsedData = parseCSV(e.target.result);
                 document.getElementById('submit-upload').style.display = 'block';
                 document.getElementById('submit-upload').innerText = `อัปโหลดไปยัง ${detectedPlatform}_DB (${parsedData.length} รายการ)`;
             };
             reader.readAsText(file);
         }
 
-        // 2. ฟังก์ชันช่วยอ่าน CSV (รองรับเครื่องหมายคำพูด)
         function parseCSV(str) {
             const rows = [];
             const lines = str.split(/\r?\n/);
-            if (lines.length < 2) return rows;
-        
             for (let i = 1; i < lines.length; i++) {
                 if (lines[i].trim() === "") continue;
-                
                 let cols = [];
                 let current = "";
                 let inQuotes = false;
-                
                 for (let char of lines[i]) {
                     if (char === '"') inQuotes = !inQuotes;
                     else if (char === ',' && !inQuotes) {
-                        // คลีนตัวอักษรพิเศษ \t และช่องว่างออก
                         cols.push(current.replace(/\t/g, '').trim());
                         current = "";
-                    } else {
-                        current += char;
-                    }
+                    } else { current += char; }
                 }
                 cols.push(current.replace(/\t/g, '').trim());
                 rows.push(cols);
@@ -139,105 +129,51 @@
             return rows;
         }
 
-        // 3. ส่งข้อมูลไป Google Sheets
         function uploadToServer() {
             const btn = document.getElementById('submit-upload');
-            btn.disabled = true;
-            btn.innerText = "กำลังอัปโหลด...";
-        
-            // สร้างข้อมูลที่จะส่ง
-            const payload = {
-                action: 'uploadData',
-                platform: detectedPlatform,
-                data: parsedData
-            };
-        
+            btn.disabled = true; btn.innerText = "กำลังอัปโหลด...";
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors', // 👈 เพิ่มบรรทัดนี้เพื่อข้ามการเช็ค CORS
-                cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8', // 👈 ใช้ text/plain แทน application/json เพื่อเลี่ยง Preflight
-                },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                // เมื่อใช้ no-cors เราจะไม่สามารถอ่าน JSON ที่ส่งกลับมาได้ (จะเป็น Opaque Response)
-                // แต่ถ้าคำสั่งทำงานสำเร็จ ข้อมูลจะไปโผล่ใน Sheet แน่นอนครับ
-                alert(`ระบบกำลังดำเนินการอัปโหลดไปยัง ${detectedPlatform}_DB... กรุณารอ 5-10 วินาทีแล้วเช็คใน Google Sheet ครับ`);
+                mode: 'no-cors',
+                body: JSON.stringify({ action: 'uploadData', platform: detectedPlatform, data: parsedData })
+            }).then(() => {
+                alert("อัปโหลดเรียบร้อย! กรุณารอระบบประมวลผลสักครู่");
                 location.reload();
-            })
-            .catch(error => {
-                console.error("Fetch Error:", error);
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-                btn.disabled = false;
-                btn.innerText = "ลองใหม่อีกครั้ง";
             });
         }
 
-        window.onload = () => {
-            // โหลดจำนวนสแกนวันนี้
-            fetch(SCRIPT_URL + '?action=getToday')
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('stat-scanned').innerText = data.length;
-                });
-        
-            // โหลดรายชื่อขนส่งทั้งหมด (รวม 2 แพลตฟอร์ม)
-            loadAllShippingProviders();
-        };
-        
+        // --- ส่วนที่ 2: การดึงข้อมูลมาแสดงผล ---
         function loadAllShippingProviders() {
-            const shippingSelect = document.getElementById('shipping-select');
-            
+            const select = document.getElementById('shipping-select');
             fetch(`${SCRIPT_URL}?action=getShippingData`)
                 .then(res => res.json())
                 .then(providers => {
-                    shippingSelect.innerHTML = '<option value="">-- ทั้งหมดทุกขนส่ง --</option>';
-                    
-                    if (providers.length === 0) {
-                        shippingSelect.innerHTML = '<option value="">ไม่พบข้อมูลขนส่งในระบบ</option>';
-                    } else {
-                        // เรียงลำดับชื่อ ก-ฮ A-Z เพื่อให้หาง่าย
-                        providers.sort().forEach(name => {
-                            const opt = document.createElement('option');
-                            opt.value = name;
-                            opt.textContent = name;
-                            shippingSelect.appendChild(opt);
-                        });
-                    }
-                })
-                .catch(err => {
-                    shippingSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
-                    console.error(err);
+                    select.innerHTML = '<option value="">-- เลือกขนส่ง --</option>';
+                    providers.forEach(name => {
+                        let opt = document.createElement('option');
+                        opt.value = name; opt.textContent = name;
+                        select.appendChild(opt);
+                    });
                 });
         }
 
-        // เพิ่มฟังก์ชันดึงข้อมูลออเดอร์ใน <script>
         function loadOrdersData() {
             const shipping = document.getElementById('shipping-select').value;
             const listArea = document.getElementById('order-list-area');
             const totalCard = document.getElementById('stat-total');
-        
-            if (!shipping) {
-                listArea.innerHTML = '';
-                totalCard.innerText = '0';
-                return;
-            }
-        
-            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลดรายการออเดอร์...</p>';
-        
+
+            if (!shipping) { listArea.innerHTML = ''; totalCard.innerText = '0'; return; }
+
+            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลด...</p>';
+
             fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
                 .then(res => res.json())
                 .then(orders => {
-                    totalCard.innerText = orders.length; // 1. อัปเดตเป้าหมายวันนี้
-                    
+                    totalCard.innerText = orders.length;
                     if (orders.length === 0) {
-                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบออเดอร์ค้างส่งของขนส่งนี้</p>';
+                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบออเดอร์</p>';
                         return;
                     }
-        
-                    // 2. แสดงรายการออเดอร์
                     listArea.innerHTML = orders.map(order => `
                         <div class="order-item">
                             <div style="grid-column: span 2;">
@@ -248,9 +184,6 @@
                             <div style="text-align:right;">สถานะ:<br><span style="color:var(--primary)">${order.status}</span></div>
                         </div>
                     `).join('');
-                })
-                .catch(err => {
-                    listArea.innerHTML = '<p style="text-align:center; color:red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
                 });
         }
     </script>
