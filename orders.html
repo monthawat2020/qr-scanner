@@ -21,14 +21,14 @@
         .card p { margin: 10px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
 
         /* ปุ่มลอย FAB */
-        .fab-scan { position: fixed; bottom: 30px; right: 20px; background: var(--success); color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 30px; box-shadow: 0 6px 15px rgba(40,167,69,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .fab-scan { position: fixed; bottom: 30px; right: 20px; background: var(--success); color: white; border: none; width: 70px; height: 70px; border-radius: 50%; font-size: 30px; box-shadow: 0 6px 15px rgba(40,167,69,0.4); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 50; }
 
         /* Scanner Overlay */
         #scanner-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 100; }
         #reader { width: 100%; height: 100%; }
         .scan-ui { position: absolute; top: 20px; width: 100%; display: flex; justify-content: center; z-index: 110; }
-        #scan-status { background: white; padding: 10px 20px; border-radius: 30px; font-weight: bold; }
-        .btn-close { position: absolute; top: 20px; right: 20px; background: var(--danger); color: white; border: none; padding: 10px; border-radius: 5px; z-index: 110; }
+        #scan-status { background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 30px; font-weight: bold; }
+        .btn-close { position: absolute; top: 20px; right: 20px; background: var(--danger); color: white; border: none; padding: 10px 15px; border-radius: 8px; z-index: 120; font-weight: bold; cursor: pointer; }
 
         /* Popup ซ้ำ */
         #dup-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index: 200; justify-content:center; align-items:center; }
@@ -70,14 +70,13 @@
 
     <div id="dup-modal">
         <div class="dup-box">
-            <h2>⚠️ ข้อมูลซ้ำ!</h2>
-            <p id="dup-text"></p>
-            <button onclick="closeDup()" style="padding:10px 20px; border:none; background:#333; color:white; border-radius:10px;">ตกลง</button>
+            <h2 style="color:#d84315;">⚠️ ข้อมูลซ้ำ!</h2>
+            <p id="dup-text" style="font-size: 18px; color: #333;"></p>
+            <button onclick="closeDup()" style="padding:10px 30px; border:none; background:#333; color:white; border-radius:20px; font-weight:bold; cursor:pointer;">รับทราบ</button>
         </div>
     </div>
 
     <script>
-        // ใช้ URL ของ Google Apps Script ของคุณ
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
         let html5QrCode;
         let scannedCodes = new Set();
@@ -105,14 +104,42 @@
             }
         }
 
+        // ฟังก์ชันเสียงเตือน
+        function playBeep(type = 'success') {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.type = type === 'success' ? "sine" : "sawtooth";
+                osc.frequency.value = type === 'success' ? 800 : 200; 
+                osc.connect(ctx.destination);
+                osc.start();
+                setTimeout(() => osc.stop(), type === 'success' ? 150 : 400); 
+            } catch (e) { console.error("Audio error", e); }
+        }
+
         function openScanner() {
             document.getElementById('scanner-overlay').style.display = 'block';
+            isPaused = false; // รีเซ็ตสถานะหยุดชั่วคราว
             if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess)
+            .catch(err => {
+                alert("ไม่สามารถเปิดกล้องได้: " + err);
+                document.getElementById('scanner-overlay').style.display = 'none';
+            });
         }
 
         function closeScanner() {
-            if(html5QrCode) html5QrCode.stop().then(() => { document.getElementById('scanner-overlay').style.display = 'none'; });
+            if (html5QrCode && html5QrCode.getState() > 1) { // ตรวจสอบว่ากล้องทำงานอยู่ไหม
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                    isPaused = false;
+                }).catch(err => {
+                    console.error("Stop failed", err);
+                    document.getElementById('scanner-overlay').style.display = 'none';
+                });
+            } else {
+                document.getElementById('scanner-overlay').style.display = 'none';
+            }
         }
 
         function onScanSuccess(decodedText) {
@@ -121,22 +148,37 @@
 
             if (scannedCodes.has(code)) {
                 isPaused = true;
-                document.getElementById('dup-text').innerText = "เลขพัสดุ " + code + " ถูกสแกนไปแล้ว";
+                playBeep('error'); // เสียงเตือนเมื่อซ้ำ
+                document.getElementById('dup-text').innerText = "เลขพัสดุ " + code + "\nถูกสแกนไปแล้ว";
                 document.getElementById('dup-modal').style.display = 'flex';
                 return;
             }
 
+            // ถ้าไม่ซ้ำ
             isPaused = true;
             scannedCodes.add(code);
-            document.getElementById('scan-status').innerText = "✅ บันทึกแล้ว: " + code;
+            playBeep('success'); // เสียงติ๊ดเมื่อสำเร็จ
             
+            document.getElementById('scan-status').innerText = "✅ บันทึกแล้ว: " + code;
+            document.getElementById('scan-status').style.color = "green";
+            
+            // ส่งบันทึกเงียบๆ
             fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
             updateUI();
 
-            setTimeout(() => { isPaused = false; document.getElementById('scan-status').innerText = "พร้อมสแกนต่อไป"; }, 1500);
+            setTimeout(() => {
+                if (document.getElementById('dup-modal').style.display !== 'flex') {
+                    isPaused = false;
+                    document.getElementById('scan-status').innerText = "พร้อมสแกนต่อไป";
+                    document.getElementById('scan-status').style.color = "black";
+                }
+            }, 1500);
         }
 
-        function closeDup() { document.getElementById('dup-modal').style.display = 'none'; setTimeout(() => isPaused = false, 500); }
+        function closeDup() {
+            document.getElementById('dup-modal').style.display = 'none';
+            setTimeout(() => { isPaused = false; }, 500);
+        }
     </script>
 </body>
 </html>
