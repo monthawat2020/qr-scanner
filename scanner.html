@@ -57,6 +57,20 @@
         #history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         #history-list li { padding: 12px 5px; border-bottom: 1px dashed #eee; color: #333; font-size: 15px; }
 
+        /* ปรับปรุง Modal ให้แสดงสรุปได้ดีขึ้น */
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .sum-card { padding: 10px; border-radius: 12px; text-align: center; background: #f8f9fa; border: 1px solid #eee; }
+        .sum-card b { font-size: 18px; display: block; }
+        .sum-card span { font-size: 10px; color: #666; text-transform: uppercase; }
+        
+        /* สไตล์สำหรับรายการแยกกลุ่ม */
+        .tab-container { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; overflow-x: auto; }
+        .tab-btn { padding: 8px 12px; border: none; background: none; font-size: 12px; font-weight: bold; color: #999; white-space: nowrap; }
+        .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        
+        .list-item { padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 13px; display: flex; justify-content: space-between; }
+        .list-item .plt { font-size: 10px; padding: 2px 5px; border-radius: 4px; color: white; margin-right: 5px; }
+
         /* Popup ซ้ำ */
         .dup-box { background: #fffbe6; padding: 30px; border-radius: 28px; text-align: center; width: 80%; border: 3px solid #ffe58f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     </style>
@@ -69,7 +83,32 @@
     </div>
 
     <div class="scanner-footer">
-        <button class="btn-history" onclick="toggleHistory(true)">🕒 ดูประวัติสแกน</button>
+        <button class="btn-history" onclick="toggleSummary(true)">📋 ดูสรุปคำสั่งซื้อ</button>
+    </div>
+    
+    <div id="history-modal" class="modal">
+        <div class="modal-content" style="height: 80vh; max-width: 400px;">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size: 18px;">สรุปงาน [ <span id="sum-shipping-name"></span> ]</h3>
+                <button onclick="toggleSummary(false)" style="background:#333; color:white; border:none; padding:8px 15px; border-radius:12px; font-weight:bold;">ปิด</button>
+            </div>
+            
+            <div class="summary-grid">
+                <div class="sum-card"><b id="sum-scanned" style="color:var(--success)">0</b><span>แสกนแล้ว</span></div>
+                <div class="sum-card"><b id="sum-remaining" style="color:var(--warning)">0</b><span>ยังไม่แสกน</span></div>
+                <div class="sum-card"><b id="sum-notrack" style="color:var(--danger)">0</b><span>ไม่มีเลขพัสดุ</span></div>
+                <div class="sum-card"><b id="sum-total">0</b><span>ทั้งหมด</span></div>
+            </div>
+    
+            <div class="tab-container">
+                <button class="tab-btn active" onclick="showList('REMAIN')">ยังไม่แสกน</button>
+                <button class="tab-btn" onclick="showList('NOTRACK')">ไม่มีเลขพัสดุ</button>
+                <button class="tab-btn" onclick="showList('DONE')">แสกนแล้ว</button>
+            </div>
+    
+            <div id="summary-list-area" style="overflow-y: auto; flex-grow: 1;">
+                </div>
+        </div>
     </div>
 
     <div id="reader"></div>
