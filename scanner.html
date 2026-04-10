@@ -6,106 +6,36 @@
     <title>เครื่องสแกนพัสดุ</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { 
-            --danger: #ff4d4f; --warning: #faad14; --success: #52c41a; --primary: #1890ff; 
-            --bg-modal: #ffffff; --bg-item: #f9f9f9;
-        }
+        :root { --danger: #ff4d4f; --warning: #faad14; --success: #52c41a; --primary: #1890ff; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, sans-serif; }
-        
         #reader { width: 100vw; height: 100vh; }
-
-        /* Top Bar */
-        .scanner-header {
-            position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; z-index: 10;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
-        }
-        
-        #scan-status-box { 
-            background: rgba(255,255,255,0.95); padding: 8px 18px; 
-            border-radius: 25px; font-weight: bold; font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: #333;
-        }
-
-        .btn-exit { 
-            background: var(--danger); color: white; border: none; 
-            padding: 8px 16px; border-radius: 12px; font-weight: bold; font-size: 13px;
-        }
-
-        /* Bottom Bar */
-        .scanner-footer {
-            position: fixed; bottom: 35px; left: 0; width: 100%;
-            display: flex; justify-content: center; z-index: 10;
-        }
-
-        .btn-summary { 
-            background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.4);
-            padding: 14px 35px; border-radius: 35px; font-weight: bold; font-size: 16px;
-            backdrop-filter: blur(15px); box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            transition: 0.2s;
-        }
-
-        /* Modal Summary */
-        .modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end; 
-            backdrop-filter: blur(10px); 
-        }
-        .modal-content { 
-            background: var(--bg-modal); width: 100%; max-width: 500px; height: 85vh; 
-            border-radius: 30px 30px 0 0; padding: 25px; display: flex; flex-direction: column; 
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
-            animation: slideUp 0.3s ease-out;
-        }
+        .scanner-header { position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; z-index: 10; background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%); }
+        #scan-status-box { background: rgba(255,255,255,0.95); padding: 8px 18px; border-radius: 25px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: #333; }
+        .btn-exit { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .scanner-footer { position: fixed; bottom: 35px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 10; }
+        .btn-summary { background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 14px 35px; border-radius: 35px; font-weight: bold; font-size: 16px; backdrop-filter: blur(15px); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end; backdrop-filter: blur(10px); }
+        .modal-content { background: white; width: 100%; max-width: 500px; height: 85vh; border-radius: 30px 30px 0 0; padding: 25px; display: flex; flex-direction: column; box-sizing: border-box; animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        
-        /* Progress Bar */
-        .progress-container { width: 100%; background: #eee; height: 8px; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress-container { width: 100%; background: #eee; height: 8px; border-radius: 4px; margin: 15px 0; overflow: hidden; }
         #progress-bar { height: 100%; background: var(--success); width: 0%; transition: 0.5s; }
-
-        /* Summary Cards */
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-        .sum-card { padding: 12px 5px; border-radius: 18px; text-align: center; border: 1px solid transparent; }
-        .sum-card b { font-size: 20px; display: block; margin-bottom: 2px; }
-        .sum-card span { font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.8; }
-        
-        .scanned { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
-        .remaining { background: #fffbe6; border-color: #ffe58f; color: #d48806; }
-        .notrack { background: #fff1f0; border-color: #ffa39e; color: #cf1322; }
-
-        /* Tabs (Pill Style) */
-        .tab-container { 
-            display: flex; background: #f0f0f0; padding: 4px; border-radius: 12px; 
-            margin-bottom: 15px; gap: 4px;
-        }
-        .tab-btn { 
-            flex: 1; padding: 10px; border: none; background: none; 
-            font-size: 12px; font-weight: bold; color: #888; border-radius: 10px;
-            cursor: pointer; transition: 0.3s;
-        }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .sum-card { padding: 12px 5px; border-radius: 18px; text-align: center; border: 1px solid #eee; }
+        .sum-card b { font-size: 20px; display: block; }
+        .sum-card span { font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .tab-container { display: flex; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 15px; gap: 4px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; font-size: 12px; font-weight: bold; color: #888; border-radius: 10px; cursor: pointer; }
         .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        
-        /* List Items */
-        #summary-list-area { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
-        .list-item { 
-            background: #fff; padding: 14px; border-radius: 15px; margin-bottom: 10px;
-            border: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        }
-        .list-item b { font-size: 14px; color: #333; letter-spacing: 0.5px; }
+        #summary-list-area { overflow-y: auto; flex-grow: 1; }
+        .list-item { background: #fff; padding: 14px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
         .plt-tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; color: white; margin-right: 8px; font-weight: 800; }
-
-        /* Duplicate/Error Alert */
-        .dup-box { background: #fff; padding: 35px 25px; border-radius: 30px; text-align: center; width: 80%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .dup-box { background: #fff; padding: 30px; border-radius: 30px; text-align: center; width: 85%; max-width: 320px; }
     </style>
 </head>
 <body>
 
     <div class="scanner-header">
-        <div id="scan-status-box">🔄 กำลังโหลดข้อมูล...</div>
+        <div id="scan-status-box">🔄 กำลังโหลด...</div>
         <button class="btn-exit" onclick="location.href='orders.html'">ปิด X</button>
     </div>
 
@@ -117,24 +47,24 @@
 
     <div id="summary-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <h3 style="margin:0; font-size: 18px; color:#333;">สรุปคำสั่งซื้อ</h3>
+                    <h3 style="margin:0; font-size: 18px;">สรุปคำสั่งซื้อ</h3>
                     <small id="sum-shipping-name" style="color:var(--primary); font-weight:bold;"></small>
                 </div>
-                <button onclick="toggleSummary(false)" style="background:#eee; border:none; width:35px; height:35px; border-radius:50%; font-weight:bold; color:#666;">✕</button>
+                <button onclick="toggleSummary(false)" style="background:#eee; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;">✕</button>
             </div>
 
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; font-weight:bold;">
+            <div style="display:flex; justify-content:space-between; margin-top:15px; font-size:12px; font-weight:bold;">
                 <span>ความสำเร็จ</span>
                 <span id="progress-text">0%</span>
             </div>
             <div class="progress-container"><div id="progress-bar"></div></div>
             
             <div class="summary-grid">
-                <div class="sum-card scanned"><b id="sum-scanned">0</b><span>แสกนแล้ว</span></div>
-                <div class="sum-card remaining"><b id="sum-remaining">0</b><span>ยังไม่แสกน</span></div>
-                <div class="sum-card notrack"><b id="sum-notrack">0</b><span>ไม่มีเลข</span></div>
+                <div class="sum-card" style="background:#f6ffed;"><b id="sum-scanned" style="color:#389e0d;">0</b><span>แสกนแล้ว</span></div>
+                <div class="sum-card" style="background:#fffbe6;"><b id="sum-remaining" style="color:#d48806;">0</b><span>ยังไม่แสกน</span></div>
+                <div class="sum-card" style="background:#fff1f0;"><b id="sum-notrack" style="color:#cf1322;">0</b><span>ไม่มีเลข</span></div>
             </div>
     
             <div class="tab-container">
@@ -147,12 +77,12 @@
         </div>
     </div>
 
-    <div id="dup-modal" class="modal" style="align-items: center; background: rgba(0,0,0,0.9);">
+    <div id="alert-modal" class="modal" style="align-items: center; background: rgba(0,0,0,0.9);">
         <div class="dup-box">
             <div id="alert-icon" style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
-            <h2 id="alert-title" style="margin:0 0 10px 0; color:#333;">พบปัญหา</h2>
-            <p id="dup-text" style="font-size: 16px; color: #666; margin-bottom: 25px;"></p>
-            <button onclick="closeDup()" style="width:100%; padding:15px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold; font-size:16px;">ตกลง</button>
+            <h2 id="alert-title" style="margin:0; font-size: 20px;">พบปัญหา</h2>
+            <p id="alert-text" style="color: #666; margin: 15px 0 25px 0;"></p>
+            <button onclick="closeAlert()" style="width:100%; padding:15px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold; font-size:16px;">ตกลง</button>
         </div>
     </div>
 
@@ -161,16 +91,13 @@
         const urlParams = new URLSearchParams(window.location.search);
         const selectedShipping = urlParams.get('shipping');
         
-        let html5QrCode;
-        let allOrdersData = []; 
-        let scannedToday = new Set(); 
-        let targetTracks = new Set(); 
-        let isPaused = false;
-        let currentTab = 'REMAIN';
+        let html5QrCode, allOrdersData = [], scannedToday = new Set(), targetTracks = new Set();
+        let isPaused = false, currentTab = 'REMAIN';
 
         window.onload = () => {
             if (!selectedShipping) { alert("กรุณาเลือกขนส่งก่อน"); location.href='orders.html'; return; }
-            document.getElementById('sum-shipping-name').innerText = selectedShipping;
+            const elName = document.getElementById('sum-shipping-name');
+            if(elName) elName.innerText = selectedShipping;
             loadScannerData();
         };
 
@@ -184,8 +111,7 @@
                     allOrdersData.forEach(o => { if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); });
                     updateCounter();
                     startCamera();
-                })
-                .catch(err => alert("โหลดข้อมูลล้มเหลว: " + err));
+                }).catch(err => console.error("Load Error:", err));
         }
 
         function updateCounter() {
@@ -193,13 +119,19 @@
             const targetCount = targetTracks.size;
             const percent = targetCount > 0 ? Math.round((scannedCount / targetCount) * 100) : 0;
             
-            document.getElementById('scan-status-box').innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetCount}`;
-            document.getElementById('progress-bar').style.width = percent + '%';
-            document.getElementById('progress-text').innerText = percent + '%';
+            const elBox = document.getElementById('scan-status-box');
+            if(elBox) elBox.innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetCount}`;
+            
+            const elBar = document.getElementById('progress-bar');
+            if(elBar) elBar.style.width = percent + '%';
+            
+            const elPText = document.getElementById('progress-text');
+            if(elPText) elPText.innerText = percent + '%';
         }
 
         function toggleSummary(show) {
-            document.getElementById('summary-modal').style.display = show ? 'flex' : 'none';
+            const elModal = document.getElementById('summary-modal');
+            if(elModal) elModal.style.display = show ? 'flex' : 'none';
             isPaused = show;
             if(show) renderSummary();
         }
@@ -209,28 +141,32 @@
             const remainingList = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
             const noTrackList = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
 
-            document.getElementById('sum-scanned').innerText = scannedList.length;
-            document.getElementById('sum-remaining').innerText = remainingList.length;
-            document.getElementById('sum-notrack').innerText = noTrackList.length;
-            document.getElementById('sum-total').innerText = allOrdersData.length;
-
+            // --- Safety Set Text ---
+            const setText = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+            
+            setText('sum-scanned', scannedList.length);
+            setText('sum-remaining', remainingList.length);
+            setText('sum-notrack', noTrackList.length);
+            
             showList(currentTab);
         }
 
         function showList(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + tab.toLowerCase()).classList.add('active');
+            const activeBtn = document.getElementById('tab-' + tab.toLowerCase());
+            if(activeBtn) activeBtn.classList.add('active');
 
             const listArea = document.getElementById('summary-list-area');
-            let list = [];
+            if(!listArea) return;
 
+            let list = [];
             if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
             if (tab === 'NOTRACK') list = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
             if (tab === 'DONE') list = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
 
             if (list.length === 0) {
-                listArea.innerHTML = '<div style="text-align:center; padding:50px 0;"><div style="font-size:40px; margin-bottom:10px;">☕</div><div style="color:#999; font-size:14px;">ไม่มีรายการในหมวดนี้</div></div>';
+                listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
                 return;
             }
 
@@ -240,7 +176,7 @@
                         <span class="plt-tag" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
                         <b>${o.tracking || '---'}</b>
                     </div>
-                    <div style="color:${tab === 'DONE' ? 'var(--success)' : '#999'}; font-size:11px; font-weight:bold;">${o.status}</div>
+                    <div style="font-size:11px; font-weight:bold; color:#999;">${o.status}</div>
                 </div>
             `).join('');
         }
@@ -250,12 +186,12 @@
             const code = String(decodedText).trim().toUpperCase();
 
             if (!targetTracks.has(code)) {
-                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f", "❌ ไม่พบข้อมูล", "⛔");
+                showAlert("ไม่พบเลขพัสดุนี้ในรายการ!", "❌ ไม่พบข้อมูล", "⛔");
                 return;
             }
 
             if (scannedToday.has(code)) {
-                handleError("เลขพัสดุนี้ถูกสแกนบันทึกไปแล้ว", "#faad14", "⚠️ สแกนซ้ำ", "🔄");
+                showAlert("เลขพัสดุนี้ถูกสแกนบันทึกไปแล้ว", "⚠️ สแกนซ้ำ", "🔄");
                 return;
             }
 
@@ -263,30 +199,29 @@
             scannedToday.add(code);
             playBeep('success');
             
-            document.getElementById('scan-status-box').innerText = "✅ บันทึกแล้ว: " + code;
-            document.getElementById('scan-status-box').style.color = "var(--success)";
+            const elBox = document.getElementById('scan-status-box');
+            if(elBox) elBox.innerText = "✅ บันทึกแล้ว: " + code;
             
             fetch(`${SCRIPT_URL}?action=scan&tracking=${encodeURIComponent(code)}`, { mode: 'no-cors' });
 
-            setTimeout(() => {
-                isPaused = false;
-                updateCounter();
-            }, 1500);
+            setTimeout(() => { isPaused = false; updateCounter(); }, 1500);
         }
 
-        function handleError(msg, bgColor, title, icon) {
+        function showAlert(msg, title, icon) {
             isPaused = true;
             playBeep('error');
-            document.body.style.background = bgColor;
-            document.getElementById('alert-icon').innerText = icon;
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('dup-text').innerText = msg;
-            document.getElementById('dup-modal').style.display = 'flex';
+            const elModal = document.getElementById('alert-modal');
+            if(elModal) {
+                document.getElementById('alert-icon').innerText = icon;
+                document.getElementById('alert-title').innerText = title;
+                document.getElementById('alert-text').innerText = msg;
+                elModal.style.display = 'flex';
+            }
         }
 
-        function closeDup() {
-            document.getElementById('dup-modal').style.display = 'none';
-            document.body.style.background = "#000";
+        function closeAlert() {
+            const elModal = document.getElementById('alert-modal');
+            if(elModal) elModal.style.display = 'none';
             setTimeout(() => isPaused = false, 500);
         }
 
