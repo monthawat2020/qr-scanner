@@ -113,23 +113,34 @@
             const btn = document.getElementById('submit-upload');
             btn.disabled = true;
             btn.innerText = "กำลังอัปโหลด...";
-
+        
+            // สร้างข้อมูลที่จะส่ง
+            const payload = {
+                action: 'uploadData',
+                platform: detectedPlatform,
+                data: parsedData
+            };
+        
             fetch(SCRIPT_URL, {
                 method: 'POST',
-                body: JSON.stringify({
-                    action: 'uploadData',
-                    platform: detectedPlatform,
-                    data: parsedData
-                })
+                mode: 'no-cors', // 👈 เพิ่มบรรทัดนี้เพื่อข้ามการเช็ค CORS
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8', // 👈 ใช้ text/plain แทน application/json เพื่อเลี่ยง Preflight
+                },
+                body: JSON.stringify(payload)
             })
-            .then(r => r.json())
-            .then(res => {
-                alert(`สำเร็จ! ข้อมูลถูกบันทึกใน ${res.sheet} เรียบร้อยแล้ว`);
+            .then(response => {
+                // เมื่อใช้ no-cors เราจะไม่สามารถอ่าน JSON ที่ส่งกลับมาได้ (จะเป็น Opaque Response)
+                // แต่ถ้าคำสั่งทำงานสำเร็จ ข้อมูลจะไปโผล่ใน Sheet แน่นอนครับ
+                alert(`ระบบกำลังดำเนินการอัปโหลดไปยัง ${detectedPlatform}_DB... กรุณารอ 5-10 วินาทีแล้วเช็คใน Google Sheet ครับ`);
                 location.reload();
             })
-            .catch(err => {
-                alert("เกิดข้อผิดพลาดในการอัปโหลด");
+            .catch(error => {
+                console.error("Fetch Error:", error);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
                 btn.disabled = false;
+                btn.innerText = "ลองใหม่อีกครั้ง";
             });
         }
     </script>
