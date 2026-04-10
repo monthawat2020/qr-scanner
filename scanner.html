@@ -6,7 +6,10 @@
     <title>เครื่องสแกนพัสดุ</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --danger: #ff4d4f; --warning: #ffc107; --success: #52c41a; --primary: #007bff; }
+        :root { 
+            --danger: #ff4d4f; --warning: #faad14; --success: #52c41a; --primary: #1890ff; 
+            --bg-modal: #ffffff; --bg-item: #f9f9f9;
+        }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, sans-serif; }
         
         #reader { width: 100vw; height: 100vh; }
@@ -16,13 +19,13 @@
             position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
             display: flex; justify-content: space-between; align-items: center;
             box-sizing: border-box; z-index: 10;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 100%);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
         }
         
         #scan-status-box { 
-            background: rgba(255,255,255,0.9); padding: 8px 16px; 
-            border-radius: 20px; font-weight: bold; font-size: 13px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.95); padding: 8px 18px; 
+            border-radius: 25px; font-weight: bold; font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: #333;
         }
 
         .btn-exit { 
@@ -32,56 +35,82 @@
 
         /* Bottom Bar */
         .scanner-footer {
-            position: fixed; bottom: 30px; left: 0; width: 100%;
+            position: fixed; bottom: 35px; left: 0; width: 100%;
             display: flex; justify-content: center; z-index: 10;
         }
 
         .btn-summary { 
-            background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);
-            padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 16px;
-            backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.4);
+            padding: 14px 35px; border-radius: 35px; font-weight: bold; font-size: 16px;
+            backdrop-filter: blur(15px); box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: 0.2s;
         }
 
         /* Modal Summary */
         .modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; 
-            backdrop-filter: blur(8px); 
+            background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end; 
+            backdrop-filter: blur(10px); 
         }
         .modal-content { 
-            background: white; width: 90%; max-width: 400px; height: 80vh; 
-            border-radius: 28px; padding: 20px; display: flex; flex-direction: column; 
+            background: var(--bg-modal); width: 100%; max-width: 500px; height: 85vh; 
+            border-radius: 30px 30px 0 0; padding: 25px; display: flex; flex-direction: column; 
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease-out;
         }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 15px; }
-        
-        /* Summary Grid */
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-        .sum-card { padding: 10px; border-radius: 12px; text-align: center; background: #f8f9fa; border: 1px solid #eee; }
-        .sum-card b { font-size: 18px; display: block; }
-        .sum-card span { font-size: 10px; color: #666; text-transform: uppercase; }
-        
-        /* Tabs */
-        .tab-container { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; overflow-x: auto; }
-        .tab-btn { padding: 8px 12px; border: none; background: none; font-size: 12px; font-weight: bold; color: #999; white-space: nowrap; cursor: pointer; }
-        .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-        
-        #summary-list-area { overflow-y: auto; flex-grow: 1; }
-        .list-item { padding: 12px 5px; border-bottom: 1px solid #f0f0f0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
-        .list-item .plt { font-size: 9px; padding: 2px 5px; border-radius: 4px; color: white; margin-right: 5px; font-weight: bold; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-        /* Popup Alert */
-        .dup-box { background: #fffbe6; padding: 30px; border-radius: 28px; text-align: center; width: 80%; border: 3px solid #ffe58f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; background: #eee; height: 8px; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        #progress-bar { height: 100%; background: var(--success); width: 0%; transition: 0.5s; }
+
+        /* Summary Cards */
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .sum-card { padding: 12px 5px; border-radius: 18px; text-align: center; border: 1px solid transparent; }
+        .sum-card b { font-size: 20px; display: block; margin-bottom: 2px; }
+        .sum-card span { font-size: 10px; font-weight: bold; text-transform: uppercase; opacity: 0.8; }
+        
+        .scanned { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
+        .remaining { background: #fffbe6; border-color: #ffe58f; color: #d48806; }
+        .notrack { background: #fff1f0; border-color: #ffa39e; color: #cf1322; }
+
+        /* Tabs (Pill Style) */
+        .tab-container { 
+            display: flex; background: #f0f0f0; padding: 4px; border-radius: 12px; 
+            margin-bottom: 15px; gap: 4px;
+        }
+        .tab-btn { 
+            flex: 1; padding: 10px; border: none; background: none; 
+            font-size: 12px; font-weight: bold; color: #888; border-radius: 10px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        
+        /* List Items */
+        #summary-list-area { overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+        .list-item { 
+            background: #fff; padding: 14px; border-radius: 15px; margin-bottom: 10px;
+            border: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .list-item b { font-size: 14px; color: #333; letter-spacing: 0.5px; }
+        .plt-tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; color: white; margin-right: 8px; font-weight: 800; }
+
+        /* Duplicate/Error Alert */
+        .dup-box { background: #fff; padding: 35px 25px; border-radius: 30px; text-align: center; width: 80%; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
     <div class="scanner-header">
-        <div id="scan-status-box">กำลังโหลด...</div>
+        <div id="scan-status-box">🔄 กำลังโหลดข้อมูล...</div>
         <button class="btn-exit" onclick="location.href='orders.html'">ปิด X</button>
     </div>
 
     <div class="scanner-footer">
-        <button class="btn-summary" onclick="toggleSummary(true)">📋 ดูสรุปคำสั่งซื้อ</button>
+        <button class="btn-summary" onclick="toggleSummary(true)">📋 ดูสรุปและรายการ</button>
     </div>
 
     <div id="reader"></div>
@@ -89,32 +118,41 @@
     <div id="summary-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 style="margin:0; font-size: 16px;">สรุป [ <span id="sum-shipping-name"></span> ]</h3>
-                <button onclick="toggleSummary(false)" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:10px; font-weight:bold;">ปิด</button>
+                <div>
+                    <h3 style="margin:0; font-size: 18px; color:#333;">สรุปคำสั่งซื้อ</h3>
+                    <small id="sum-shipping-name" style="color:var(--primary); font-weight:bold;"></small>
+                </div>
+                <button onclick="toggleSummary(false)" style="background:#eee; border:none; width:35px; height:35px; border-radius:50%; font-weight:bold; color:#666;">✕</button>
             </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px; font-size:12px; font-weight:bold;">
+                <span>ความสำเร็จ</span>
+                <span id="progress-text">0%</span>
+            </div>
+            <div class="progress-container"><div id="progress-bar"></div></div>
             
             <div class="summary-grid">
-                <div class="sum-card"><b id="sum-scanned" style="color:var(--success)">0</b><span>แสกนแล้ว</span></div>
-                <div class="sum-card"><b id="sum-remaining" style="color:var(--warning)">0</b><span>ยังไม่แสกน</span></div>
-                <div class="sum-card"><b id="sum-notrack" style="color:var(--danger)">0</b><span>ไม่มีเลข</span></div>
-                <div class="sum-card"><b id="sum-total">0</b><span>ทั้งหมด</span></div>
+                <div class="sum-card scanned"><b id="sum-scanned">0</b><span>แสกนแล้ว</span></div>
+                <div class="sum-card remaining"><b id="sum-remaining">0</b><span>ยังไม่แสกน</span></div>
+                <div class="sum-card notrack"><b id="sum-notrack">0</b><span>ไม่มีเลข</span></div>
             </div>
     
             <div class="tab-container">
-                <button id="tab-remain" class="tab-btn active" onclick="showList('REMAIN')">ยังไม่แสกน</button>
+                <button id="tab-remain" class="tab-btn active" onclick="showList('REMAIN')">ยังค้าง</button>
                 <button id="tab-notrack" class="tab-btn" onclick="showList('NOTRACK')">ไม่มีเลข</button>
-                <button id="tab-done" class="tab-btn" onclick="showList('DONE')">แสกนแล้ว</button>
+                <button id="tab-done" class="tab-btn" onclick="showList('DONE')">สำเร็จ</button>
             </div>
     
             <div id="summary-list-area"></div>
         </div>
     </div>
 
-    <div id="dup-modal" class="modal">
+    <div id="dup-modal" class="modal" style="align-items: center; background: rgba(0,0,0,0.9);">
         <div class="dup-box">
-            <h2 id="alert-title" style="margin-top:0;">⚠️ เตือน</h2>
-            <p id="dup-text" style="font-size: 16px; color: #555;"></p>
-            <button onclick="closeDup()" style="margin-top:15px; width:100%; padding:14px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold;">ตกลง</button>
+            <div id="alert-icon" style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
+            <h2 id="alert-title" style="margin:0 0 10px 0; color:#333;">พบปัญหา</h2>
+            <p id="dup-text" style="font-size: 16px; color: #666; margin-bottom: 25px;"></p>
+            <button onclick="closeDup()" style="width:100%; padding:15px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold; font-size:16px;">ตกลง</button>
         </div>
     </div>
 
@@ -137,29 +175,27 @@
         };
 
         function loadScannerData() {
-            document.getElementById('scan-status-box').innerText = "กำลังโหลดข้อมูล...";
             fetch(`${SCRIPT_URL}?action=getScannerData&shipping=${encodeURIComponent(selectedShipping)}`)
                 .then(r => r.json())
                 .then(data => {
                     allOrdersData = data.orders || [];
                     scannedToday = new Set((data.scanned || []).map(t => t.toUpperCase()));
-                    
-                    // สร้าง Set สำหรับเทียบตอนแสกน (เฉพาะที่มีเลขพัสดุ)
                     targetTracks = new Set();
                     allOrdersData.forEach(o => { if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); });
-                    
                     updateCounter();
                     startCamera();
                 })
-                .catch(err => alert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err));
+                .catch(err => alert("โหลดข้อมูลล้มเหลว: " + err));
         }
 
         function updateCounter() {
-            // นับจำนวนที่สแกนแล้วเฉพาะที่ "ตรงกับขนส่งนี้"
             const scannedCount = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase())).length;
             const targetCount = targetTracks.size;
-            document.getElementById('scan-status-box').innerText = `[${selectedShipping}] ${scannedCount} / ${targetCount}`;
-            document.getElementById('scan-status-box').style.color = "black";
+            const percent = targetCount > 0 ? Math.round((scannedCount / targetCount) * 100) : 0;
+            
+            document.getElementById('scan-status-box').innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetCount}`;
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('progress-text').innerText = percent + '%';
         }
 
         function toggleSummary(show) {
@@ -194,17 +230,17 @@
             if (tab === 'DONE') list = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
 
             if (list.length === 0) {
-                listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
+                listArea.innerHTML = '<div style="text-align:center; padding:50px 0;"><div style="font-size:40px; margin-bottom:10px;">☕</div><div style="color:#999; font-size:14px;">ไม่มีรายการในหมวดนี้</div></div>';
                 return;
             }
 
             listArea.innerHTML = list.map(o => `
                 <div class="list-item">
                     <div>
-                        <span class="plt" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
-                        <b>${o.tracking || 'ไม่มีเลขพัสดุ'}</b>
+                        <span class="plt-tag" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
+                        <b>${o.tracking || '---'}</b>
                     </div>
-                    <div style="color:#888; font-size:11px;">${o.status}</div>
+                    <div style="color:${tab === 'DONE' ? 'var(--success)' : '#999'}; font-size:11px; font-weight:bold;">${o.status}</div>
                 </div>
             `).join('');
         }
@@ -214,16 +250,15 @@
             const code = String(decodedText).trim().toUpperCase();
 
             if (!targetTracks.has(code)) {
-                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f", "❌ ไม่พบข้อมูล");
+                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f", "❌ ไม่พบข้อมูล", "⛔");
                 return;
             }
 
             if (scannedToday.has(code)) {
-                handleError("เลขพัสดุนี้สแกนบันทึกไปแล้ว", "#fa8c16", "⚠️ สแกนซ้ำ");
+                handleError("เลขพัสดุนี้ถูกสแกนบันทึกไปแล้ว", "#faad14", "⚠️ สแกนซ้ำ", "🔄");
                 return;
             }
 
-            // สำเร็จ
             isPaused = true;
             scannedToday.add(code);
             playBeep('success');
@@ -239,10 +274,11 @@
             }, 1500);
         }
 
-        function handleError(msg, bgColor, title) {
+        function handleError(msg, bgColor, title, icon) {
             isPaused = true;
             playBeep('error');
             document.body.style.background = bgColor;
+            document.getElementById('alert-icon').innerText = icon;
             document.getElementById('alert-title').innerText = title;
             document.getElementById('dup-text').innerText = msg;
             document.getElementById('dup-modal').style.display = 'flex';
@@ -256,7 +292,7 @@
 
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, onScanSuccess);
         }
 
         function playBeep(type) {
