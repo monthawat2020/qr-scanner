@@ -3,261 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เครื่องสแกนพัสดุ</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>ระบบจัดการคำสั่งซื้อ</title>
     <style>
         :root { 
-            --danger: #ff4d4f; --warning: #faad14; --success: #52c41a; --primary: #1890ff; 
-            --bg-modal: #ffffff;
-        }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, sans-serif; }
-        #reader { width: 100vw; height: 100vh; }
-
-        /* Interface Layout */
-        .scanner-header {
-            position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-sizing: border-box; z-index: 10;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
-        }
-        #scan-status-box { 
-            background: rgba(255,255,255,0.95); padding: 8px 18px; 
-            border-radius: 25px; font-weight: bold; font-size: 14px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: #333;
-        }
-        .btn-exit { background: var(--danger); color: white; border: none; padding: 8px 16px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .scanner-footer { position: fixed; bottom: 35px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 10; }
-        .btn-summary { 
-            background: rgba(255,255,255,0.25); color: white; border: 1px solid rgba(255,255,255,0.4);
-            padding: 14px 35px; border-radius: 35px; font-weight: bold; font-size: 16px;
-            backdrop-filter: blur(15px); box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            --primary: #4361ee;
+            --success: #2ec4b6;
+            --warning: #ff9f1c;
+            --danger: #e71d36;
+            --tiktok: #000000;
+            --shopee: #ee4d2d;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2b2d42;
+            --text-sub: #8d99ae;
         }
 
-        /* Modal Styles */
-        .modal { 
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: flex-end; 
-            backdrop-filter: blur(10px); 
+        body, html { 
+            margin: 0; padding: 0; min-height: 100dvh; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--text-main);
+            display: flex; flex-direction: column;
         }
-        .modal-content { 
-            background: var(--bg-modal); width: 100%; max-width: 500px; height: 85vh; 
-            border-radius: 30px 30px 0 0; padding: 25px; display: flex; flex-direction: column; 
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3); animation: slideUp 0.3s ease-out; box-sizing: border-box;
+
+        /* Header */
+        .header { 
+            background: var(--card-bg); padding: 18px 20px; 
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 100;
         }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .header h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--primary); }
+        .btn-back { text-decoration: none; font-size: 20px; color: var(--text-main); display: flex; align-items: center; }
 
-        /* Summary Dashboard */
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .sum-card { padding: 12px 5px; border-radius: 18px; text-align: center; border: 1px solid #eee; }
-        .sum-card b { font-size: 20px; display: block; }
-        .sum-card span { font-size: 10px; font-weight: bold; text-transform: uppercase; }
-        .scanned { background: #f6ffed; color: #389e0d; }
-        .remaining { background: #fffbe6; color: #d48806; }
-        .notrack { background: #fff1f0; color: #cf1322; }
+        .content { 
+            flex-grow: 1; padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; 
+            display: flex; flex-direction: column; gap: 20px; padding-bottom: 100px; 
+        }
 
-        /* Tabs & Lists */
-        .tab-container { display: flex; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 15px; gap: 4px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; font-size: 12px; font-weight: bold; color: #888; border-radius: 10px; cursor: pointer; }
-        .tab-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        #summary-list-area { overflow-y: auto; flex-grow: 1; }
-        .list-item { background: #fff; padding: 14px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
-        .plt-tag { font-size: 9px; padding: 3px 8px; border-radius: 6px; color: white; margin-right: 8px; font-weight: 800; }
+        /* Dashboard */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { 
+            background: var(--card-bg); padding: 18px 10px; border-radius: 20px; 
+            text-align: center; border: 1px solid rgba(0,0,0,0.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: transform 0.2s;
+        }
+        .card h4 { margin: 0; font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; }
+        .card p { margin: 8px 0 0 0; font-size: 26px; font-weight: 800; line-height: 1; }
+        
+        .c-total { color: var(--primary); }
+        .c-scanned { color: var(--success); }
+        .c-remaining { color: var(--warning); }
+        .c-cancelled { color: var(--danger); }
 
-        /* Alert Box */
-        .dup-box { background: #fff; padding: 30px; border-radius: 30px; text-align: center; width: 85%; max-width: 320px; }
+        /* Action Sections */
+        .section-title { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .card-action { background: var(--card-bg); padding: 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
+
+        /* Upload UI */
+        .upload-box { 
+            border: 2px dashed #e0e4e8; padding: 20px; border-radius: 18px; 
+            text-align: center; background: #fafbfc; transition: 0.3s;
+        }
+        .upload-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+        #file-input { display: none; }
+        .btn-upload { 
+            display: inline-block; padding: 10px 24px; background: var(--primary); 
+            color: white; border-radius: 12px; font-weight: 700; font-size: 14px;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+        #submit-upload { 
+            margin-top: 15px; width: 100%; padding: 12px; border: none;
+            background: var(--success); color: white; border-radius: 12px; 
+            font-weight: 700; cursor: pointer; font-size: 14px;
+        }
+
+        /* Filter UI */
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .filter-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; margin-left: 4px; }
+        .filter-group select { 
+            width: 100%; padding: 12px; border-radius: 14px; border: 1px solid #edf2f7; 
+            background: #f8f9fa; font-size: 14px; font-weight: 600; outline: none;
+            appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238d99ae' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C2.13 5.298 2.387 4.7 2.857 4.7h9.536a.5.5 0 0 1 .4.786l-4.796 5.48a.5.5 0 0 1-.748 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: calc(100% - 12px) center;
+        }
+
+        /* Order List */
+        .order-list-area { margin-top: 5px; }
+        .order-item { 
+            background: var(--card-bg); padding: 18px; border-radius: 20px; margin-bottom: 15px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.01);
+            position: relative; overflow: hidden;
+        }
+        .order-item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+        
+        .tag { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #fff; }
+        .tag-tiktok { background: var(--tiktok); }
+        .tag-shopee { background: var(--shopee); }
+
+        .order-info b { font-size: 15px; color: var(--text-main); letter-spacing: 0.3px; }
+        .order-info span { font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 2px; }
+        
+        .status-badge { font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+
+        /* Floating Scan Button */
+        .btn-scan-container {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            padding: 20px; box-sizing: border-box;
+            background: linear-gradient(to top, var(--bg) 80%, transparent);
+            display: flex; justify-content: center; z-index: 99;
+        }
+        .btn-go-scan { 
+            width: 100%; max-width: 460px; padding: 18px; background: var(--primary); 
+            color: white; border-radius: 20px; font-size: 18px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            text-decoration: none; box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+            border: none; cursor: pointer; transition: 0.2s;
+        }
+        .btn-go-scan:active { transform: scale(0.96); }
+
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .order-item { animation: fadeIn 0.3s ease-out; }
     </style>
 </head>
 <body>
 
-    <div class="scanner-header">
-        <div id="scan-status-box">🔄 กำลังโหลดข้อมูล...</div>
-        <button class="btn-exit" onclick="location.href='orders.html'">ปิด X</button>
-    </div>
+    <header class="header">
+        <a href="index.html" class="btn-back">🔙</a>
+        <h2>MANAGEMENT</h2>
+        <div style="width: 20px;"></div>
+    </header>
 
-    <div class="scanner-footer">
-        <button class="btn-summary" onclick="toggleSummary(true)">📋 ดูสรุปและรายการ</button>
-    </div>
+    <div class="content">
+        <div class="dashboard">
+            <div class="card"><h4>🎯 เป้าหมาย</h4><p id="stat-total" class="c-total">0</p></div>
+            <div class="card"><h4>✅ แสกนแล้ว</h4><p id="stat-scanned" class="c-scanned">0</p></div>
+            <div class="card"><h4>⏳ เหลือ</h4><p id="stat-remaining" class="c-remaining">0</p></div>
+            <div class="card"><h4>✖️ ยกเลิก</h4><p id="stat-cancelled" class="c-cancelled">0</p></div>
+        </div>
 
-    <div id="reader"></div>
+        <div class="card-action">
+            <div class="section-title"><span>📁</span> นำเข้าข้อมูลคำสั่งซื้อ</div>
+            <div class="upload-box">
+                <span class="upload-icon">☁️</span>
+                <label for="file-input" class="btn-upload">เลือกไฟล์ CSV</label>
+                <input type="file" id="file-input" accept=".csv" onchange="handleFile(this)">
+                <div id="file-info" style="margin-top:12px; font-size:12px; color:var(--text-sub); font-weight: 500;">ยังไม่ได้เลือกไฟล์</div>
+                <button id="submit-upload" style="display:none;" onclick="uploadToServer()">เริ่มอัปโหลดเข้าระบบ</button>
+            </div>
+        </div>
 
-    <div id="summary-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div>
-                    <h3 style="margin:0; font-size: 18px;">สรุปคำสั่งซื้อ</h3>
-                    <small id="sum-shipping-name" style="color:var(--primary); font-weight:bold;"></small>
+        <div class="card-action">
+            <div class="section-title"><span>🔍</span> กรองรายการ</div>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>ขนส่ง</label>
+                    <select id="shipping-select" onchange="loadOrdersData()">
+                        <option value="">-- ทั้งหมด --</option>
+                    </select>
                 </div>
-                <button onclick="toggleSummary(false)" style="background:#eee; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer;">✕</button>
+                <div class="filter-group">
+                    <label>สถานะ</label>
+                    <select id="status-filter" onchange="renderFilteredOrders()">
+                        <option value="ALL">ทั้งหมด</option>
+                        <option value="PENDING">ยังไม่แสกน</option>
+                        <option value="DONE">แสกนแล้ว</option>
+                        <option value="CANCEL">ยกเลิก</option>
+                    </select>
+                </div>
             </div>
+        </div>
 
-            <div class="summary-grid">
-                <div class="sum-card scanned"><b id="sum-scanned">0</b><span>แสกนแล้ว</span></div>
-                <div class="sum-card remaining"><b id="sum-remaining">0</b><span>ยังไม่แสกน</span></div>
-                <div class="sum-card notrack"><b id="sum-notrack">0</b><span>ไม่มีเลข</span></div>
-            </div>
-    
-            <div class="tab-container">
-                <button id="tab-remain" class="tab-btn active" onclick="showList('REMAIN')">ยังค้าง</button>
-                <button id="tab-notrack" class="tab-btn" onclick="showList('NOTRACK')">ไม่มีเลข</button>
-                <button id="tab-done" class="tab-btn" onclick="showList('DONE')">สำเร็จ</button>
-            </div>
-    
-            <div id="summary-list-area"></div>
+        <div class="section-title"><span>📋</span> รายการออเดอร์</div>
+        <div id="order-list-area" class="order-list-area">
+            <p style="text-align:center; color:var(--text-sub); font-size: 13px; margin-top: 20px;">กรุณาเลือกขนส่งเพื่อดูข้อมูล</p>
         </div>
     </div>
 
-    <div id="alert-modal" class="modal" style="align-items: center;">
-        <div class="dup-box">
-            <div id="alert-icon" style="font-size: 50px; margin-bottom: 10px;">⚠️</div>
-            <h2 id="alert-title" style="margin:0; font-size: 20px;">พบปัญหา</h2>
-            <p id="alert-text" style="color: #666; margin: 15px 0 25px 0;"></p>
-            <button onclick="closeAlert()" style="width:100%; padding:15px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold; font-size:16px; cursor:pointer;">ตกลง</button>
-        </div>
+    <div class="btn-scan-container">
+        <button onclick="goToScanner()" class="btn-go-scan">
+            <span>📷</span> เปิดกล้องสแกนพัสดุ
+        </button>
     </div>
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        const urlParams = new URLSearchParams(window.location.search);
-        const selectedShipping = urlParams.get('shipping');
-        
-        let html5QrCode;
-        let allOrdersData = []; 
-        let scannedToday = new Set(); 
-        let targetTracks = new Set(); 
-        let isPaused = false;
-        let currentTab = 'REMAIN';
+        let parsedData = [];
+        let detectedPlatform = "";
+        let currentOrders = [];
 
         window.onload = () => {
-            if (!selectedShipping) { alert("กรุณาเลือกขนส่งก่อน"); location.href='orders.html'; return; }
-            document.getElementById('sum-shipping-name').innerText = selectedShipping;
-            loadScannerData();
-        };
-
-        function loadScannerData() {
-            fetch(`${SCRIPT_URL}?action=getScannerData&shipping=${encodeURIComponent(selectedShipping)}`)
+            fetch(SCRIPT_URL + '?action=getTodayStats')
                 .then(r => r.json())
                 .then(data => {
-                    allOrdersData = data.orders || [];
-                    scannedToday = new Set((data.scanned || []).map(t => t.toUpperCase()));
-                    targetTracks = new Set();
-                    allOrdersData.forEach(o => { if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); });
-                    updateCounter();
-                    startCamera();
+                    document.getElementById('stat-total').innerText = data.total;
+                    document.getElementById('stat-scanned').innerText = data.pickedUp;
+                    document.getElementById('stat-cancelled').innerText = data.cancelled || 0;
+                    document.getElementById('stat-remaining').innerText = data.total - data.pickedUp - (data.cancelled || 0);
+                });
+            loadAllShippingProviders();
+        };
+
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const fileName = file.name.toLowerCase();
+            document.getElementById('file-info').innerText = file.name;
+            detectedPlatform = fileName.includes('tiktok') ? 'tiktok' : (fileName.includes('shopee') ? 'shopee' : "");
+            
+            if (!detectedPlatform) {
+                alert("กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                parsedData = parseCSV(e.target.result);
+                document.getElementById('submit-upload').style.display = 'block';
+                document.getElementById('submit-upload').innerText = `อัปโหลด ${detectedPlatform.toUpperCase()} (${parsedData.length} รายการ)`;
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(str) {
+            const rows = [];
+            const lines = str.split(/\r?\n/);
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === "") continue;
+                let cols = [];
+                let current = "";
+                let inQuotes = false;
+                for (let char of lines[i]) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        cols.push(current.replace(/\t/g, '').trim());
+                        current = "";
+                    } else { current += char; }
+                }
+                cols.push(current.replace(/\t/g, '').trim());
+                rows.push(cols);
+            }
+            return rows;
+        }
+
+        function uploadToServer() {
+            const btn = document.getElementById('submit-upload');
+            btn.disabled = true; btn.innerText = "กำลังอัปโหลด...";
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: 'uploadData', platform: detectedPlatform, data: parsedData })
+            }).then(() => {
+                alert("อัปโหลดเรียบร้อย!");
+                location.reload();
+            });
+        }
+
+        function loadAllShippingProviders() {
+            const select = document.getElementById('shipping-select');
+            fetch(`${SCRIPT_URL}?action=getShippingData`)
+                .then(res => res.json())
+                .then(providers => {
+                    select.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+                    providers.forEach(name => {
+                        let opt = document.createElement('option');
+                        opt.value = name; opt.textContent = name;
+                        select.appendChild(opt);
+                    });
                 });
         }
 
-        function updateCounter() {
-            const scannedCount = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase())).length;
-            document.getElementById('scan-status-box').innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetTracks.size}`;
+        function loadOrdersData() {
+            const shipping = document.getElementById('shipping-select').value;
+            const listArea = document.getElementById('order-list-area');
+            if (!shipping) { resetStats(); return; }
+            listArea.innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-sub);">กำลังดึงข้อมูล...</p>';
+            fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
+                .then(res => res.json())
+                .then(orders => {
+                    currentOrders = orders;
+                    updateDashboard(orders);
+                    renderFilteredOrders();
+                });
         }
 
-        function toggleSummary(show) {
-            document.getElementById('summary-modal').style.display = show ? 'flex' : 'none';
-            isPaused = show;
-            if(show) renderSummary();
+        function updateDashboard(orders) {
+            const total = orders.length;
+            const scanned = orders.filter(o => o.isPickedUp).length;
+            const cancelled = orders.filter(o => o.isCancelled).length;
+            const remaining = total - scanned - cancelled;
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-scanned').innerText = scanned;
+            document.getElementById('stat-cancelled').innerText = cancelled;
+            document.getElementById('stat-remaining').innerText = remaining >= 0 ? remaining : 0;
         }
 
-        function renderSummary() {
-            const scannedList = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
-            const remainingList = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
-            const noTrackList = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
+        function renderFilteredOrders() {
+            const filter = document.getElementById('status-filter').value;
+            const listArea = document.getElementById('order-list-area');
+            let filtered = currentOrders;
+            if (filter === "PENDING") filtered = currentOrders.filter(o => !o.isPickedUp && !o.isCancelled);
+            if (filter === "DONE") filtered = currentOrders.filter(o => o.isPickedUp);
+            if (filter === "CANCEL") filtered = currentOrders.filter(o => o.isCancelled);
 
-            // Safety Check: ป้องกัน Error ที่คุณเจอ
-            const elScanned = document.getElementById('sum-scanned');
-            const elRem = document.getElementById('sum-remaining');
-            const elNoTrack = document.getElementById('sum-notrack');
-            const elTotal = document.getElementById('sum-total');
-
-            if (elScanned) elScanned.innerText = scannedList.length;
-            if (elRem) elRem.innerText = remainingList.length;
-            if (elNoTrack) elNoTrack.innerText = noTrackList.length;
-            
-            showList(currentTab);
-        }
-
-        function showList(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            const activeTabBtn = document.getElementById('tab-' + tab.toLowerCase());
-            if (activeTabBtn) activeTabBtn.classList.add('active');
-
-            const listArea = document.getElementById('summary-list-area');
-            let list = [];
-
-            if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
-            if (tab === 'NOTRACK') list = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
-            if (tab === 'DONE') list = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
-
-            if (list.length === 0) {
-                listArea.innerHTML = '<div style="text-align:center; padding:50px 0; color:#999;">ไม่มีรายการ</div>';
+            if (filtered.length === 0) {
+                listArea.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:13px; margin-top:20px;">ไม่พบรายการในหมวดนี้</p>';
                 return;
             }
 
-            listArea.innerHTML = list.map(o => `
-                <div class="list-item">
-                    <div>
-                        <span class="plt-tag" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
-                        <b>${o.tracking || '---'}</b>
+            listArea.innerHTML = filtered.map(order => {
+                let borderCol = "#e2e8f0";
+                let statusText = "○ ยังไม่แสกน";
+                let textColor = varName("--text-sub");
+
+                if (order.isPickedUp) { borderCol = "var(--success)"; statusText = "● แสกนเสร็จสิ้น"; textColor = "var(--success)"; }
+                else if (order.isCancelled) { borderCol = "var(--danger)"; statusText = "✖ ยกเลิกแล้ว"; textColor = "var(--danger)"; }
+
+                return `
+                    <div class="order-item" style="border-left-color: ${borderCol}; opacity: ${order.isCancelled ? '0.6' : '1'}">
+                        <div style="grid-column: span 2; display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
+                                <span style="margin-left:5px; font-size:14px; font-weight:700;">${order.shipping}</span>
+                            </div>
+                            <div class="status-badge" style="color: ${textColor}">${statusText}</div>
+                        </div>
+                        <div class="order-info"><span>เลขพัสดุ</span><b>${order.tracking || '- ไม่มีข้อมูล -'}</b></div>
+                        <div class="order-info" style="text-align:right;"><span>สถานะจริง</span><b style="color:${textColor}">${order.status}</b></div>
                     </div>
-                    <div style="font-size:11px; font-weight:bold; color:#999;">${o.status}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+        
+        function varName(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
+
+        function resetStats() {
+            document.getElementById('stat-total').innerText = '0';
+            document.getElementById('stat-scanned').innerText = '0';
+            document.getElementById('stat-remaining').innerText = '0';
+            document.getElementById('stat-cancelled').innerText = '0';
+            document.getElementById('order-list-area').innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:13px; margin-top:20px;">กรุณาเลือกขนส่ง</p>';
         }
 
-        function onScanSuccess(decodedText) {
-            if (isPaused) return;
-            const code = String(decodedText).trim().toUpperCase();
-
-            if (!targetTracks.has(code)) {
-                showAlert("ไม่พบเลขพัสดุนี้ในรายการ!", "❌ ไม่พบข้อมูล", "⛔");
-                return;
-            }
-
-            if (scannedToday.has(code)) {
-                showAlert("เลขพัสดุนี้ถูกสแกนบันทึกไปแล้ว", "⚠️ สแกนซ้ำ", "🔄");
-                return;
-            }
-
-            isPaused = true;
-            scannedToday.add(code);
-            playBeep('success');
-            
-            document.getElementById('scan-status-box').innerText = "✅ บันทึกแล้ว: " + code;
-            fetch(`${SCRIPT_URL}?action=scan&tracking=${encodeURIComponent(code)}`, { mode: 'no-cors' });
-
-            setTimeout(() => {
-                isPaused = false;
-                updateCounter();
-            }, 1500);
-        }
-
-        function showAlert(msg, title, icon) {
-            isPaused = true;
-            playBeep('error');
-            document.getElementById('alert-icon').innerText = icon;
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-text').innerText = msg;
-            document.getElementById('alert-modal').style.display = 'flex';
-        }
-
-        function closeAlert() {
-            document.getElementById('alert-modal').style.display = 'none';
-            setTimeout(() => isPaused = false, 500);
-        }
-
-        function startCamera() {
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, onScanSuccess);
-        }
-
-        function playBeep(type) {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            osc.type = type === 'success' ? 'sine' : 'sawtooth';
-            osc.frequency.value = type === 'success' ? 800 : 200;
-            osc.connect(ctx.destination);
-            osc.start();
-            setTimeout(() => osc.stop(), 200);
+        function goToScanner() {
+            const shipping = document.getElementById('shipping-select').value;
+            if (!shipping) { alert("กรุณาเลือกขนส่งก่อนครับ"); return; }
+            window.location.href = `scanner.html?shipping=${encodeURIComponent(shipping)}`;
         }
     </script>
 </body>
