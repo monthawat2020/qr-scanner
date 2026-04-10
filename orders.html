@@ -6,30 +6,60 @@
     <title>จัดการคำสั่งซื้อ</title>
     <style>
         :root { --primary: #007bff; --success: #28a745; --bg: #f0f2f5; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); }
-        .header { background: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn-back { text-decoration: none; font-size: 24px; color: #333; }
-        .content { padding: 20px; max-width: 500px; margin: 0 auto; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; }
-        .card { background: white; padding: 25px 15px; border-radius: 20px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .card h4 { margin: 0; color: #666; font-size: 14px; }
-        .card p { margin: 10px 0 0 0; font-size: 32px; font-weight: bold; color: var(--primary); }
         
-        /* ปุ่มข้ามไปหน้าสแกน */
-        .btn-go-scan { 
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 20px; background: var(--success); color: white; 
-            text-decoration: none; border-radius: 15px; font-size: 20px; font-weight: bold;
-            box-shadow: 0 6px 15px rgba(40, 167, 69, 0.3); transition: 0.2s;
+        body, html { 
+            margin: 0; padding: 0; 
+            min-height: 100vh; min-height: 100dvh;
+            font-family: -apple-system, sans-serif; 
+            background: var(--bg);
+            display: flex; flex-direction: column;
         }
-        .btn-go-scan:active { transform: scale(0.98); }
+
+        /* Header: ฟิกไว้ด้านบน */
+        .header { 
+            background: white; padding: 15px 20px; 
+            display: flex; align-items: center; gap: 15px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+        .btn-back { text-decoration: none; font-size: 22px; color: #333; padding: 5px; }
+
+        /* Content: ยืดหยุ่นตามหน้าจอ */
+        .content { 
+            flex-grow: 1; padding: 20px; 
+            display: flex; flex-direction: column; 
+            gap: 20px; box-sizing: border-box;
+            max-width: 500px; margin: 0 auto; width: 100%;
+        }
+
+        /* Dashboard Cards: ปรับให้ไม่ล้น */
+        .dashboard { 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; 
+        }
+        .card { 
+            background: white; padding: 20px 10px; border-radius: 18px; 
+            text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .card h4 { margin: 0; color: #888; font-size: 12px; text-transform: uppercase; }
+        .card p { margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
+        
+        /* ปุ่มเปิดกล้อง: ปรับให้เด่นและพอดีความกว้าง */
+        .btn-go-scan { 
+            margin-top: auto; /* ดันปุ่มลงล่างสุดของพื้นที่ว่าง */
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            padding: 18px; background: var(--success); color: white; 
+            text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold;
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); transition: 0.2s;
+        }
+        .btn-go-scan:active { transform: scale(0.97); opacity: 0.9; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <a href="index.html" class="btn-back">⬅</a>
-        <h2 style="margin:0; font-size: 20px;">จัดการคำสั่งซื้อ</h2>
+        <h2 style="margin:0; font-size: 18px;">จัดการคำสั่งซื้อ</h2>
     </div>
 
     <div class="content">
@@ -44,6 +74,10 @@
             </div>
         </div>
 
+        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #aaa; font-style: italic;">
+            <p>พร้อมเริ่มงานหรือยัง?</p>
+        </div>
+
         <a href="scanner.html" class="btn-go-scan">
             <span>📷 เปิดกล้องสแกนพัสดุ</span>
         </a>
@@ -51,13 +85,10 @@
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        
         window.onload = () => {
-            fetch(SCRIPT_URL + '?action=getToday')
-                .then(r => r.json())
-                .then(data => {
-                    document.getElementById('stat-scanned').innerText = data.length;
-                });
+            fetch(SCRIPT_URL + '?action=getToday').then(r => r.json()).then(data => {
+                document.getElementById('stat-scanned').innerText = data.length;
+            });
         };
     </script>
 </body>
