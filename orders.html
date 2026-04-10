@@ -49,18 +49,9 @@
             
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div>
-                    <label style="font-size: 12px; color: #888;">แพลตฟอร์ม</label>
-                    <select id="platform-select" onchange="updateShippingOptions()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none;">
-                        <option value="">-- เลือกแพลตฟอร์ม --</option>
-                        <option value="Tiktok">Tiktok</option>
-                        <option value="Shopee">Shopee</option>
-                    </select>
-                </div>
-        
-                <div>
-                    <label style="font-size: 12px; color: #888;">ขนส่ง</label>
-                    <select id="shipping-select" disabled style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none; background: #f9f9f9;">
-                        <option value="">-- กรุณาเลือกแพลตฟอร์มก่อน --</option>
+                    <label style="font-size: 12px; color: #888;">เลือกขนส่ง</label>
+                    <select id="shipping-select" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none;">
+                        <option value="">กำลังโหลดรายชื่อขนส่ง...</option>
                     </select>
                 </div>
             </div>
@@ -167,42 +158,41 @@
             });
         }
 
-        function updateShippingOptions() {
-            const platform = document.getElementById('platform-select').value;
+        window.onload = () => {
+            // โหลดจำนวนสแกนวันนี้
+            fetch(SCRIPT_URL + '?action=getToday')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('stat-scanned').innerText = data.length;
+                });
+        
+            // โหลดรายชื่อขนส่งทั้งหมด (รวม 2 แพลตฟอร์ม)
+            loadAllShippingProviders();
+        };
+        
+        function loadAllShippingProviders() {
             const shippingSelect = document.getElementById('shipping-select');
             
-            // รีเซ็ตค่าเริ่มต้น
-            shippingSelect.innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>';
-            shippingSelect.disabled = true;
-            shippingSelect.style.background = "#f9f9f9";
-        
-            if (!platform) {
-                shippingSelect.innerHTML = '<option value="">-- กรุณาเลือกแพลตฟอร์มก่อน --</option>';
-                return;
-            }
-        
-            // เรียกข้อมูลจาก Apps Script
-            fetch(`${SCRIPT_URL}?action=getShippingData&platform=${platform}`)
+            fetch(`${SCRIPT_URL}?action=getShippingData`)
                 .then(res => res.json())
                 .then(providers => {
-                    shippingSelect.innerHTML = '<option value="">-- เลือกขนส่ง --</option>';
+                    shippingSelect.innerHTML = '<option value="">-- ทั้งหมดทุกขนส่ง --</option>';
                     
                     if (providers.length === 0) {
-                        shippingSelect.innerHTML = '<option value="">ไม่พบข้อมูลขนส่ง</option>';
+                        shippingSelect.innerHTML = '<option value="">ไม่พบข้อมูลขนส่งในระบบ</option>';
                     } else {
-                        providers.forEach(name => {
+                        // เรียงลำดับชื่อ ก-ฮ A-Z เพื่อให้หาง่าย
+                        providers.sort().forEach(name => {
                             const opt = document.createElement('option');
                             opt.value = name;
                             opt.textContent = name;
                             shippingSelect.appendChild(opt);
                         });
-                        shippingSelect.disabled = false;
-                        shippingSelect.style.background = "#fff";
                     }
                 })
                 .catch(err => {
-                    console.error("Error fetching shipping:", err);
                     shippingSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
+                    console.error(err);
                 });
         }
     </script>
