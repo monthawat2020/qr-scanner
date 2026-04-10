@@ -21,18 +21,32 @@
         .file-info { margin-top: 10px; font-size: 13px; color: #666; }
 
         .btn-go-scan { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: var(--success); color: white; text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); }
+
+        /* ส่วนแสดงรายการ */
+        .order-list-section { margin-top: 10px; flex-grow: 1; overflow-y: auto; }
+        .order-item { 
+            background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #eee;
+        }
+        .order-item div { font-size: 13px; color: #666; }
+        .order-item b { color: #333; font-size: 14px; }
+        .tag { padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; }
+        .tag-tiktok { background: #000; color: #fff; }
+        .tag-shopee { background: #ee4d2d; color: #fff; }
+    
     </style>
 </head>
 <body>
 
     <div class="header">
         <a href="index.html" style="text-decoration:none; color:#333;">⬅</a>
-        <h2 style="margin:0; font-size: 18px;">จัดการคำสั่งซื้อ</h2>
+        <h2 style="margin:0; font-size: 18px;">ระบบจัดการคำสั่งซื้อ</h2>
     </div>
 
     <div class="content">
         <div class="dashboard">
-            <div class="card"><h4>เป้าหมายวันนี้</h4><p>--</p></div>
+            <div class="card"><h4>เป้าหมายวันนี้</h4><p id="stat-total">0</p></div>
             <div class="card"><h4>สแกนแล้ว</h4><p id="stat-scanned">0</p></div>
         </div>
 
@@ -55,6 +69,7 @@
                     </select>
                 </div>
             </div>
+            <div id="order-list-area" class="order-list-section">
         </div>
 
         <a href="scanner.html" class="btn-go-scan">📷 เปิดกล้องสแกนพัสดุ</a>
@@ -193,6 +208,47 @@
                 .catch(err => {
                     shippingSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
                     console.error(err);
+                });
+        }
+
+        // เพิ่มฟังก์ชันดึงข้อมูลออเดอร์ใน <script>
+        function loadOrdersData() {
+            const shipping = document.getElementById('shipping-select').value;
+            const listArea = document.getElementById('order-list-area');
+            const totalCard = document.getElementById('stat-total');
+        
+            if (!shipping) {
+                listArea.innerHTML = '';
+                totalCard.innerText = '0';
+                return;
+            }
+        
+            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลดรายการออเดอร์...</p>';
+        
+            fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
+                .then(res => res.json())
+                .then(orders => {
+                    totalCard.innerText = orders.length; // 1. อัปเดตเป้าหมายวันนี้
+                    
+                    if (orders.length === 0) {
+                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบออเดอร์ค้างส่งของขนส่งนี้</p>';
+                        return;
+                    }
+        
+                    // 2. แสดงรายการออเดอร์
+                    listArea.innerHTML = orders.map(order => `
+                        <div class="order-item">
+                            <div style="grid-column: span 2;">
+                                <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
+                                <span style="margin-left:5px; font-weight:bold;">${order.shipping}</span>
+                            </div>
+                            <div>เลขพัสดุ:<br><b>${order.tracking}</b></div>
+                            <div style="text-align:right;">สถานะ:<br><span style="color:var(--primary)">${order.status}</span></div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    listArea.innerHTML = '<p style="text-align:center; color:red;">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>';
                 });
         }
     </script>
