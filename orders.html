@@ -172,23 +172,33 @@
                 return;
             }
         
-            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังกรองข้อมูล...</p>';
+            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลดรายการออเดอร์...</p>';
         
-            fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
-                .then(res => res.json())
+            // ใช้ encodeURIComponent เพื่อจัดการกับอักขระพิเศษอย่าง & ใน J&T
+            const url = `${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`;
+        
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error('Network response was not ok');
+                    return res.json();
+                })
                 .then(orders => {
-                    // 🎯 กรองเฉพาะสถานะ Picked up เพื่อไปแสดงในช่อง "แสกนแล้ว"
-                    const pickedUpOrders = orders.filter(o => o.status === 'Picked up');
+                    if (orders.error) {
+                        alert("Apps Script Error: " + orders.error);
+                        return;
+                    }
                     
-                    totalCard.innerText = orders.length;      // เป้าหมายวันนี้ (ทั้งหมดของขนส่งนี้)
-                    scannedCard.innerText = pickedUpOrders.length; // แสกนแล้ว (เฉพาะที่ Picked up)
+                    // กรองสถานะ Picked up
+                    const pickedUpOrders = orders.filter(o => o.status === 'Picked up' || o.status === 'สำเร็จแล้ว');
+                    
+                    totalCard.innerText = orders.length;
+                    scannedCard.innerText = pickedUpOrders.length;
         
                     if (orders.length === 0) {
                         listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบรายการออเดอร์</p>';
                         return;
                     }
         
-                    // แสดงรายการออเดอร์ทั้งหมดในลิสต์ (หรือจะเลือกโชว์เฉพาะ Picked up ก็ได้)
                     listArea.innerHTML = orders.map(order => `
                         <div class="order-item" style="border-left: 5px solid ${order.status === 'Picked up' ? 'var(--success)' : '#ddd'}">
                             <div style="grid-column: span 2; display: flex; justify-content: space-between;">
@@ -206,8 +216,8 @@
                     `).join('');
                 })
                 .catch(err => {
-                    console.error(err);
-                    listArea.innerHTML = '<p style="text-align:center; color:red;">โหลดข้อมูลล้มเหลว</p>';
+                    console.error("Fetch Error:", err);
+                    listArea.innerHTML = '<p style="text-align:center; color:red;">โหลดข้อมูลล้มเหลว (CORS/Server Error)</p>';
                 });
         }
     </script>
