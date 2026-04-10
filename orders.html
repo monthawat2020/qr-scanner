@@ -83,11 +83,27 @@
         function parseCSV(str) {
             const rows = [];
             const lines = str.split(/\r?\n/);
-            for (let i = 1; i < lines.length; i++) { // ข้ามหัวตาราง
+            if (lines.length < 2) return rows;
+        
+            for (let i = 1; i < lines.length; i++) {
                 if (lines[i].trim() === "") continue;
-                // แยกด้วย comma แต่ต้องไม่แยก comma ที่อยู่ในฟันหนู " "
-                const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                if (cols) rows.push(cols.map(c => c.replace(/"/g, '')));
+                
+                let cols = [];
+                let current = "";
+                let inQuotes = false;
+                
+                for (let char of lines[i]) {
+                    if (char === '"') inQuotes = !inQuotes;
+                    else if (char === ',' && !inQuotes) {
+                        // คลีนตัวอักษรพิเศษ \t และช่องว่างออก
+                        cols.push(current.replace(/\t/g, '').trim());
+                        current = "";
+                    } else {
+                        current += char;
+                    }
+                }
+                cols.push(current.replace(/\t/g, '').trim());
+                rows.push(cols);
             }
             return rows;
         }
