@@ -6,132 +6,101 @@
     <title>ระบบจัดการคำสั่งซื้อ</title>
     <style>
         :root { 
-            --primary: #4361ee;
-            --success: #2ec4b6;
-            --warning: #ff9f1c;
-            --danger: #e71d36;
-            --tiktok: #000000;
-            --shopee: #ee4d2d;
-            --bg: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-main: #2b2d42;
-            --text-sub: #8d99ae;
+            --primary: #4361ee; --success: #2ec4b6; --warning: #ff9f1c; --danger: #e71d36;
+            --tiktok: #000000; --shopee: #ee4d2d; --bg: #f8f9fa; --card-bg: #ffffff;
+            --text-main: #2b2d42; --text-sub: #8d99ae;
         }
 
         body, html { 
             margin: 0; padding: 0; min-height: 100dvh; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg); color: var(--text-main);
-            display: flex; flex-direction: column;
+            font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text-main);
         }
 
-        /* Header */
+        /* Header ปรับปรุงใหม่ */
         .header { 
-            background: var(--card-bg); padding: 18px 20px; 
+            background: var(--card-bg); padding: 12px 20px; 
             display: flex; align-items: center; justify-content: space-between;
             box-shadow: 0 2px 15px rgba(0,0,0,0.04); position: sticky; top: 0; z-index: 100;
         }
-        .header h2 { margin: 0; font-size: 18px; font-weight: 800; color: var(--primary); }
-        .btn-back { text-decoration: none; font-size: 20px; color: var(--text-main); display: flex; align-items: center; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .btn-back { text-decoration: none; font-size: 18px; color: var(--text-main); }
+        .header h2 { margin: 0; font-size: 16px; font-weight: 800; color: var(--primary); }
+
+        /* ปุ่ม Import บน Header */
+        .btn-header-import {
+            background: #f0f2f5; border: none; padding: 8px 12px; border-radius: 10px;
+            font-size: 12px; font-weight: 700; color: var(--text-main);
+            display: flex; align-items: center; gap: 6px; cursor: pointer;
+        }
+        .btn-header-import:active { background: #e2e8f0; }
 
         .content { 
-            flex-grow: 1; padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; 
-            display: flex; flex-direction: column; gap: 20px; padding-bottom: 100px; 
+            padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; 
+            display: flex; flex-direction: column; gap: 15px; padding-bottom: 100px; 
         }
 
         /* Dashboard */
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .card { 
-            background: var(--card-bg); padding: 18px 10px; border-radius: 20px; 
-            text-align: center; border: 1px solid rgba(0,0,0,0.02);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: transform 0.2s;
-        }
-        .card h4 { margin: 0; font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; }
-        .card p { margin: 8px 0 0 0; font-size: 26px; font-weight: 800; line-height: 1; }
-        
-        .c-total { color: var(--primary); }
-        .c-scanned { color: var(--success); }
-        .c-remaining { color: var(--warning); }
-        .c-cancelled { color: var(--danger); }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .card { background: var(--card-bg); padding: 15px 10px; border-radius: 18px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .card h4 { margin: 0; font-size: 10px; color: var(--text-sub); text-transform: uppercase; }
+        .card p { margin: 5px 0 0 0; font-size: 22px; font-weight: 800; }
+        .c-total { color: var(--primary); } .c-scanned { color: var(--success); }
+        .c-remaining { color: var(--warning); } .c-cancelled { color: var(--danger); }
 
-        /* Action Sections */
-        .section-title { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-        .card-action { background: var(--card-bg); padding: 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
-
-        /* Upload UI */
-        .upload-box { 
-            border: 2px dashed #e0e4e8; padding: 20px; border-radius: 18px; 
-            text-align: center; background: #fafbfc; transition: 0.3s;
+        /* Modal Styles */
+        .modal-overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
         }
-        .upload-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+        .modal-box { 
+            background: white; width: 85%; max-width: 350px; padding: 25px; border-radius: 24px;
+            text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        .upload-area { 
+            border: 2px dashed #e2e8f0; padding: 20px; border-radius: 15px; 
+            background: #f8fafc; margin: 15px 0;
+        }
         #file-input { display: none; }
-        .btn-upload { 
-            display: inline-block; padding: 10px 24px; background: var(--primary); 
-            color: white; border-radius: 12px; font-weight: 700; font-size: 14px;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-        }
-        #submit-upload { 
-            margin-top: 15px; width: 100%; padding: 12px; border: none;
-            background: var(--success); color: white; border-radius: 12px; 
-            font-weight: 700; cursor: pointer; font-size: 14px;
-        }
+        .btn-choose { padding: 10px 20px; background: var(--primary); color: white; border-radius: 10px; font-weight: 700; cursor: pointer; display: inline-block; }
+        .btn-submit-upload { width: 100%; padding: 12px; border: none; background: var(--success); color: white; border-radius: 10px; font-weight: 700; margin-top: 10px; cursor: pointer; }
+        .btn-close-modal { margin-top: 15px; background: none; border: none; color: var(--text-sub); font-size: 13px; font-weight: 600; cursor: pointer; }
 
-        /* Filter UI */
-        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .filter-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 6px; margin-left: 4px; }
-        .filter-group select { 
-            width: 100%; padding: 12px; border-radius: 14px; border: 1px solid #edf2f7; 
-            background: #f8f9fa; font-size: 14px; font-weight: 600; outline: none;
-            appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238d99ae' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C2.13 5.298 2.387 4.7 2.857 4.7h9.536a.5.5 0 0 1 .4.786l-4.796 5.48a.5.5 0 0 1-.748 0z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: calc(100% - 12px) center;
-        }
+        /* Filter Section */
+        .filter-card { background: var(--card-bg); padding: 15px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .filter-group label { display: block; font-size: 10px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
+        .filter-group select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #edf2f7; font-size: 13px; font-weight: 600; outline: none; }
 
         /* Order List */
-        .order-list-area { margin-top: 5px; }
         .order-item { 
-            background: var(--card-bg); padding: 18px; border-radius: 20px; margin-bottom: 15px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.01);
-            position: relative; overflow: hidden;
+            background: var(--card-bg); padding: 15px; border-radius: 18px; margin-bottom: 12px;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            border-left: 5px solid #eee;
         }
-        .order-item::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
-        
-        .tag { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #fff; }
-        .tag-tiktok { background: var(--tiktok); }
-        .tag-shopee { background: var(--shopee); }
+        .tag { padding: 3px 8px; border-radius: 6px; font-size: 9px; font-weight: 800; color: #fff; }
+        .tag-tiktok { background: var(--tiktok); } .tag-shopee { background: var(--shopee); }
 
-        .order-info b { font-size: 15px; color: var(--text-main); letter-spacing: 0.3px; }
-        .order-info span { font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 2px; }
-        
-        .status-badge { font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
-
-        /* Floating Scan Button */
-        .btn-scan-container {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            padding: 20px; box-sizing: border-box;
-            background: linear-gradient(to top, var(--bg) 80%, transparent);
-            display: flex; justify-content: center; z-index: 99;
+        /* Footer Button */
+        .footer-action { position: fixed; bottom: 20px; width: 100%; display: flex; justify-content: center; padding: 0 20px; box-sizing: border-box; }
+        .btn-scan { 
+            width: 100%; max-width: 460px; padding: 16px; background: var(--primary); 
+            color: white; border-radius: 18px; font-size: 16px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            text-decoration: none; box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
         }
-        .btn-go-scan { 
-            width: 100%; max-width: 460px; padding: 18px; background: var(--primary); 
-            color: white; border-radius: 20px; font-size: 18px; font-weight: 700;
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            text-decoration: none; box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
-            border: none; cursor: pointer; transition: 0.2s;
-        }
-        .btn-go-scan:active { transform: scale(0.96); }
-
-        /* Animation */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .order-item { animation: fadeIn 0.3s ease-out; }
     </style>
 </head>
 <body>
 
     <header class="header">
-        <a href="index.html" class="btn-back">🔙</a>
-        <h2>MANAGEMENT</h2>
-        <div style="width: 20px;"></div>
+        <div class="header-left">
+            <a href="index.html" class="btn-back">🔙</a>
+            <h2>X SHOP</h2>
+        </div>
+        <button class="btn-header-import" onclick="toggleUploadModal(true)">
+            <span>📄</span> Import CSV
+        </button>
     </header>
 
     <div class="content">
@@ -142,19 +111,7 @@
             <div class="card"><h4>✖️ ยกเลิก</h4><p id="stat-cancelled" class="c-cancelled">0</p></div>
         </div>
 
-        <div class="card-action">
-            <div class="section-title"><span>📁</span> นำเข้าข้อมูลคำสั่งซื้อ</div>
-            <div class="upload-box">
-                <span class="upload-icon">☁️</span>
-                <label for="file-input" class="btn-upload">เลือกไฟล์ CSV</label>
-                <input type="file" id="file-input" accept=".csv" onchange="handleFile(this)">
-                <div id="file-info" style="margin-top:12px; font-size:12px; color:var(--text-sub); font-weight: 500;">ยังไม่ได้เลือกไฟล์</div>
-                <button id="submit-upload" style="display:none;" onclick="uploadToServer()">เริ่มอัปโหลดเข้าระบบ</button>
-            </div>
-        </div>
-
-        <div class="card-action">
-            <div class="section-title"><span>🔍</span> กรองรายการ</div>
+        <div class="filter-card">
             <div class="filter-grid">
                 <div class="filter-group">
                     <label>ขนส่ง</label>
@@ -174,23 +131,35 @@
             </div>
         </div>
 
-        <div class="section-title"><span>📋</span> รายการออเดอร์</div>
-        <div id="order-list-area" class="order-list-area">
-            <p style="text-align:center; color:var(--text-sub); font-size: 13px; margin-top: 20px;">กรุณาเลือกขนส่งเพื่อดูข้อมูล</p>
+        <div id="order-list-area">
+            <p style="text-align:center; color:var(--text-sub); font-size: 13px; margin-top: 30px;">เลือกขนส่งเพื่อแสดงรายการ</p>
         </div>
     </div>
 
-    <div class="btn-scan-container">
-        <button onclick="goToScanner()" class="btn-go-scan">
-            <span>📷</span> เปิดกล้องสแกนพัสดุ
-        </button>
+    <div id="upload-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3 style="margin:0; font-size:18px;">นำเข้าข้อมูลออเดอร์</h3>
+            <p style="font-size:12px; color:var(--text-sub);">รองรับไฟล์จาก Tiktok และ Shopee</p>
+            
+            <div class="upload-area">
+                <span style="font-size:30px; display:block; margin-bottom:10px;">☁️</span>
+                <label for="file-input" class="btn-choose">เลือกไฟล์ CSV</label>
+                <input type="file" id="file-input" accept=".csv" onchange="handleFile(this)">
+                <div id="file-info" style="margin-top:10px; font-size:12px; color:#666;">ยังไม่ได้เลือกไฟล์</div>
+            </div>
+
+            <button id="submit-upload" class="btn-submit-upload" style="display:none;" onclick="uploadToServer()">เริ่มอัปโหลดเข้าระบบ</button>
+            <button class="btn-close-modal" onclick="toggleUploadModal(false)">ยกเลิก</button>
+        </div>
+    </div>
+
+    <div class="footer-action">
+        <a href="#" onclick="goToScanner()" class="btn-scan">📷 เปิดกล้องสแกนพัสดุ</a>
     </div>
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        let parsedData = [];
-        let detectedPlatform = "";
-        let currentOrders = [];
+        let parsedData = [], detectedPlatform = "", currentOrders = [];
 
         window.onload = () => {
             fetch(SCRIPT_URL + '?action=getTodayStats')
@@ -204,23 +173,25 @@
             loadAllShippingProviders();
         };
 
+        function toggleUploadModal(show) {
+            document.getElementById('upload-modal').style.display = show ? 'flex' : 'none';
+        }
+
         function handleFile(input) {
             const file = input.files[0];
             if (!file) return;
-            const fileName = file.name.toLowerCase();
             document.getElementById('file-info').innerText = file.name;
-            detectedPlatform = fileName.includes('tiktok') ? 'tiktok' : (fileName.includes('shopee') ? 'shopee' : "");
+            const name = file.name.toLowerCase();
+            detectedPlatform = name.includes('tiktok') ? 'tiktok' : (name.includes('shopee') ? 'shopee' : "");
             
-            if (!detectedPlatform) {
-                alert("กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee");
-                return;
-            }
+            if (!detectedPlatform) { alert("กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee"); return; }
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 parsedData = parseCSV(e.target.result);
-                document.getElementById('submit-upload').style.display = 'block';
-                document.getElementById('submit-upload').innerText = `อัปโหลด ${detectedPlatform.toUpperCase()} (${parsedData.length} รายการ)`;
+                const btn = document.getElementById('submit-upload');
+                btn.style.display = 'block';
+                btn.innerText = `อัปโหลด ${detectedPlatform.toUpperCase()} (${parsedData.length} รายการ)`;
             };
             reader.readAsText(file);
         }
@@ -229,16 +200,12 @@
             const rows = [];
             const lines = str.split(/\r?\n/);
             for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === "") continue;
-                let cols = [];
-                let current = "";
-                let inQuotes = false;
+                if (!lines[i].trim()) continue;
+                let cols = [], current = "", inQuotes = false;
                 for (let char of lines[i]) {
                     if (char === '"') inQuotes = !inQuotes;
-                    else if (char === ',' && !inQuotes) {
-                        cols.push(current.replace(/\t/g, '').trim());
-                        current = "";
-                    } else { current += char; }
+                    else if (char === ',' && !inQuotes) { cols.push(current.replace(/\t/g, '').trim()); current = ""; }
+                    else { current += char; }
                 }
                 cols.push(current.replace(/\t/g, '').trim());
                 rows.push(cols);
@@ -260,11 +227,10 @@
         }
 
         function loadAllShippingProviders() {
-            const select = document.getElementById('shipping-select');
             fetch(`${SCRIPT_URL}?action=getShippingData`)
                 .then(res => res.json())
                 .then(providers => {
-                    select.innerHTML = '<option value="">-- ทั้งหมด --</option>';
+                    const select = document.getElementById('shipping-select');
                     providers.forEach(name => {
                         let opt = document.createElement('option');
                         opt.value = name; opt.textContent = name;
@@ -276,8 +242,8 @@
         function loadOrdersData() {
             const shipping = document.getElementById('shipping-select').value;
             const listArea = document.getElementById('order-list-area');
-            if (!shipping) { resetStats(); return; }
-            listArea.innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-sub);">กำลังดึงข้อมูล...</p>';
+            if (!shipping) return;
+            listArea.innerHTML = '<p style="text-align:center; font-size:13px; color:var(--text-sub);">กำลังโหลด...</p>';
             fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
                 .then(res => res.json())
                 .then(orders => {
@@ -291,11 +257,10 @@
             const total = orders.length;
             const scanned = orders.filter(o => o.isPickedUp).length;
             const cancelled = orders.filter(o => o.isCancelled).length;
-            const remaining = total - scanned - cancelled;
             document.getElementById('stat-total').innerText = total;
             document.getElementById('stat-scanned').innerText = scanned;
             document.getElementById('stat-cancelled').innerText = cancelled;
-            document.getElementById('stat-remaining').innerText = remaining >= 0 ? remaining : 0;
+            document.getElementById('stat-remaining').innerText = total - scanned - cancelled;
         }
 
         function renderFilteredOrders() {
@@ -307,42 +272,29 @@
             if (filter === "CANCEL") filtered = currentOrders.filter(o => o.isCancelled);
 
             if (filtered.length === 0) {
-                listArea.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:13px; margin-top:20px;">ไม่พบรายการในหมวดนี้</p>';
+                listArea.innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:13px; margin-top:30px;">ไม่พบรายการ</p>';
                 return;
             }
 
-            listArea.innerHTML = filtered.map(order => {
-                let borderCol = "#e2e8f0";
-                let statusText = "○ ยังไม่แสกน";
-                let textColor = varName("--text-sub");
-
-                if (order.isPickedUp) { borderCol = "var(--success)"; statusText = "● แสกนเสร็จสิ้น"; textColor = "var(--success)"; }
-                else if (order.isCancelled) { borderCol = "var(--danger)"; statusText = "✖ ยกเลิกแล้ว"; textColor = "var(--danger)"; }
+            listArea.innerHTML = filtered.map(o => {
+                let border = "#eee", statusText = "○ ยังไม่แสกน", textColor = "#8d99ae";
+                if (o.isPickedUp) { border = "var(--success)"; statusText = "● แสกนแล้ว"; textColor = "var(--success)"; }
+                else if (o.isCancelled) { border = "var(--danger)"; statusText = "✖ ยกเลิก"; textColor = "var(--danger)"; }
 
                 return `
-                    <div class="order-item" style="border-left-color: ${borderCol}; opacity: ${order.isCancelled ? '0.6' : '1'}">
-                        <div style="grid-column: span 2; display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="order-item" style="border-left-color: ${border}; opacity: ${o.isCancelled ? '0.6' : '1'}">
+                        <div style="grid-column: span 2; display: flex; justify-content: space-between;">
                             <div>
-                                <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
-                                <span style="margin-left:5px; font-size:14px; font-weight:700;">${order.shipping}</span>
+                                <span class="tag ${o.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${o.platform}</span>
+                                <span style="margin-left:5px; font-weight:700; font-size:14px;">${o.shipping}</span>
                             </div>
-                            <div class="status-badge" style="color: ${textColor}">${statusText}</div>
+                            <div style="font-size:10px; font-weight:700; color:${textColor}">${statusText}</div>
                         </div>
-                        <div class="order-info"><span>เลขพัสดุ</span><b>${order.tracking || '- ไม่มีข้อมูล -'}</b></div>
-                        <div class="order-info" style="text-align:right;"><span>สถานะจริง</span><b style="color:${textColor}">${order.status}</b></div>
+                        <div style="font-size:12px; color:var(--text-sub);">เลขพัสดุ<br><b style="color:var(--text-main); font-size:14px;">${o.tracking || '-'}</b></div>
+                        <div style="text-align:right; font-size:12px; color:var(--text-sub);">สถานะระบบ<br><b style="color:${textColor}">${o.status}</b></div>
                     </div>
                 `;
             }).join('');
-        }
-        
-        function varName(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
-
-        function resetStats() {
-            document.getElementById('stat-total').innerText = '0';
-            document.getElementById('stat-scanned').innerText = '0';
-            document.getElementById('stat-remaining').innerText = '0';
-            document.getElementById('stat-cancelled').innerText = '0';
-            document.getElementById('order-list-area').innerHTML = '<p style="text-align:center; color:var(--text-sub); font-size:13px; margin-top:20px;">กรุณาเลือกขนส่ง</p>';
         }
 
         function goToScanner() {
