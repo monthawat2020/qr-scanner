@@ -144,27 +144,45 @@
             loadScannerData();
         };
 
+        // --- ฟังก์ชันหลักสำหรับเช็คว่าออเดอร์นี้ "เสร็จหรือยัง" ---
+        function isOrderDone(order) {
+            if (!order.tracking) return false;
+            const trackClean = order.tracking.toUpperCase();
+            // เงื่อนไข: สแกนวันนี้แล้ว OR สถานะใน DB เป็น Picked up อยู่แล้ว
+            return scannedToday.has(trackClean) || order.status === 'Picked up';
+        }
+
         function loadScannerData() {
             fetch(`${SCRIPT_URL}?action=getScannerData&shipping=${encodeURIComponent(selectedShipping)}`)
                 .then(r => r.json())
                 .then(data => {
                     allOrdersData = data.orders || [];
                     scannedToday = new Set((data.scanned || []).map(t => t.toUpperCase()));
+                    
                     targetTracks = new Set();
-                    allOrdersData.forEach(o => { if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); });
+                    allOrdersData.forEach(o => { 
+                        if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); 
+                    });
+                    
                     updateCounter();
                     startCamera();
                 });
         }
 
         function updateCounter() {
-            const scannedCount = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase())).length;
+            // นับออเดอร์ที่เสร็จแล้ว (ใช้ฟังก์ชัน isOrderDone)
+            const scannedCount = allOrdersData.filter(o => isOrderDone(o)).length;
             const targetCount = targetTracks.size;
             const percent = targetCount > 0 ? Math.round((scannedCount / targetCount) * 100) : 0;
             
-            document.getElementById('scan-status-box').innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetCount}`;
-            document.getElementById('progress-bar').style.width = percent + '%';
-            document.getElementById('progress-text').innerText = percent + '%';
+            const elBox = document.getElementById('scan-status-box');
+            if(elBox) elBox.innerText = `📊 ${selectedShipping}: ${scannedCount}/${targetCount}`;
+            
+            const elBar = document.getElementById('progress-bar');
+            if(elBar) elBar.style.width = percent + '%';
+            
+            const elPText = document.getElementById('progress-text');
+            if(elPText) elPText.innerText = percent + '%';
         }
 
         function toggleSummary(show) {
@@ -174,11 +192,11 @@
         }
 
         function renderSummary() {
-            const scannedList = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
-            const remainingList = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
+            // แยกกลุ่มด้วย Logic ใหม่
+            const scannedList = allOrdersData.filter(o => isOrderDone(o));
+            const remainingList = allOrdersData.filter(o => o.tracking && !isOrderDone(o));
             const noTrackList = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
 
-            // ระบบ Safety Check: ตรวจสอบก่อนว่า ID มีอยู่จริงไหมก่อน set ค่า
             const safeSet = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
 
             safeSet('sum-scanned', scannedList.length);
@@ -198,9 +216,9 @@
             const listArea = document.getElementById('summary-list-area');
             let list = [];
 
-            if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
+            if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !isOrderDone(o));
             if (tab === 'NOTRACK') list = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
-            if (tab === 'DONE') list = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
+            if (tab === 'DONE') list = allOrdersData.filter(o => isOrderDone(o));
 
             if (list.length === 0) {
                 listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
@@ -213,7 +231,9 @@
                         <span class="plt-tag" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
                         <b>${o.tracking || '---'}</b>
                     </div>
-                    <div style="font-size:11px; font-weight:bold; color:#999;">${o.status}</div>
+                    <div style="font-size:11px; font-weight:bold; color:${o.status === 'Picked up' ? 'var(--success)' : '#999'};">
+                        ${o.status}
+                    </div>
                 </div>
             `).join('');
         }
@@ -227,8 +247,11 @@
                 return;
             }
 
-            if (scannedToday.has(code)) {
-                showAlert("เลขพัสดุนี้สแกนบันทึกไปแล้ว", "⚠️ สแกนซ้ำ", "🔄");
+            // เช็คว่าเคยแสกนไปหรือยัง (รวมถึงสถานะ Picked up ในระบบด้วย)
+            const isAlreadyDone = allOrdersData.some(o => o.tracking && o.tracking.toUpperCase() === code && isOrderDone(o));
+            
+            if (isAlreadyDone) {
+                showAlert("เลขพัสดุนี้ถูกบันทึก Picked up ไปแล้ว", "⚠️ สแกนซ้ำ", "🔄");
                 return;
             }
 
@@ -245,10 +268,13 @@
         function showAlert(msg, title, icon) {
             isPaused = true;
             playBeep('error');
-            document.getElementById('alert-icon').innerText = icon;
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-text').innerText = msg;
-            document.getElementById('alert-modal').style.display = 'flex';
+            const elModal = document.getElementById('alert-modal');
+            if(elModal) {
+                document.getElementById('alert-icon').innerText = icon;
+                document.getElementById('alert-title').innerText = title;
+                document.getElementById('alert-text').innerText = msg;
+                elModal.style.display = 'flex';
+            }
         }
 
         function closeAlert() {
