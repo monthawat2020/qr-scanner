@@ -6,12 +6,12 @@
     <title>เครื่องสแกนพัสดุ</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --danger: #ff4d4f; --warning: #ffc107; --success: #52c41a; }
+        :root { --danger: #ff4d4f; --warning: #ffc107; --success: #52c41a; --primary: #007bff; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: -apple-system, sans-serif; }
         
         #reader { width: 100vw; height: 100vh; }
 
-        /* แถบควบคุมด้านบน (Top Bar) */
+        /* Top Bar */
         .scanner-header {
             position: fixed; top: 0; left: 0; width: 100%; padding: 15px 20px;
             display: flex; justify-content: space-between; align-items: center;
@@ -30,48 +30,46 @@
             padding: 8px 16px; border-radius: 12px; font-weight: bold; font-size: 13px;
         }
 
-        /* แถบควบคุมด้านล่าง (Bottom Bar) */
+        /* Bottom Bar */
         .scanner-footer {
             position: fixed; bottom: 30px; left: 0; width: 100%;
             display: flex; justify-content: center; z-index: 10;
         }
 
-        .btn-history { 
+        .btn-summary { 
             background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4);
             padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 16px;
             backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .btn-history:active { background: rgba(255,255,255,0.4); }
 
-        /* Modal ประวัติ */
+        /* Modal Summary */
         .modal { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; 
             backdrop-filter: blur(8px); 
         }
         .modal-content { 
-            background: white; width: 85%; max-width: 350px; height: 60vh; 
-            border-radius: 28px; padding: 25px; display: flex; flex-direction: column; 
+            background: white; width: 90%; max-width: 400px; height: 80vh; 
+            border-radius: 28px; padding: 20px; display: flex; flex-direction: column; 
         }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 15px; }
-        #history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
-        #history-list li { padding: 12px 5px; border-bottom: 1px dashed #eee; color: #333; font-size: 15px; }
-
-        /* ปรับปรุง Modal ให้แสดงสรุปได้ดีขึ้น */
-        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        
+        /* Summary Grid */
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
         .sum-card { padding: 10px; border-radius: 12px; text-align: center; background: #f8f9fa; border: 1px solid #eee; }
         .sum-card b { font-size: 18px; display: block; }
         .sum-card span { font-size: 10px; color: #666; text-transform: uppercase; }
         
-        /* สไตล์สำหรับรายการแยกกลุ่ม */
+        /* Tabs */
         .tab-container { display: flex; gap: 5px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; overflow-x: auto; }
-        .tab-btn { padding: 8px 12px; border: none; background: none; font-size: 12px; font-weight: bold; color: #999; white-space: nowrap; }
+        .tab-btn { padding: 8px 12px; border: none; background: none; font-size: 12px; font-weight: bold; color: #999; white-space: nowrap; cursor: pointer; }
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         
-        .list-item { padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 13px; display: flex; justify-content: space-between; }
-        .list-item .plt { font-size: 10px; padding: 2px 5px; border-radius: 4px; color: white; margin-right: 5px; }
+        #summary-list-area { overflow-y: auto; flex-grow: 1; }
+        .list-item { padding: 12px 5px; border-bottom: 1px solid #f0f0f0; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+        .list-item .plt { font-size: 9px; padding: 2px 5px; border-radius: 4px; color: white; margin-right: 5px; font-weight: bold; }
 
-        /* Popup ซ้ำ */
+        /* Popup Alert */
         .dup-box { background: #fffbe6; padding: 30px; border-radius: 28px; text-align: center; width: 80%; border: 3px solid #ffe58f; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     </style>
 </head>
@@ -83,157 +81,184 @@
     </div>
 
     <div class="scanner-footer">
-        <button class="btn-history" onclick="toggleSummary(true)">📋 ดูสรุปคำสั่งซื้อ</button>
+        <button class="btn-summary" onclick="toggleSummary(true)">📋 ดูสรุปคำสั่งซื้อ</button>
     </div>
-    
-    <div id="history-modal" class="modal">
-        <div class="modal-content" style="height: 80vh; max-width: 400px;">
+
+    <div id="reader"></div>
+
+    <div id="summary-modal" class="modal">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3 style="margin:0; font-size: 18px;">สรุปงาน [ <span id="sum-shipping-name"></span> ]</h3>
-                <button onclick="toggleSummary(false)" style="background:#333; color:white; border:none; padding:8px 15px; border-radius:12px; font-weight:bold;">ปิด</button>
+                <h3 style="margin:0; font-size: 16px;">สรุป [ <span id="sum-shipping-name"></span> ]</h3>
+                <button onclick="toggleSummary(false)" style="background:#333; color:white; border:none; padding:8px 12px; border-radius:10px; font-weight:bold;">ปิด</button>
             </div>
             
             <div class="summary-grid">
                 <div class="sum-card"><b id="sum-scanned" style="color:var(--success)">0</b><span>แสกนแล้ว</span></div>
                 <div class="sum-card"><b id="sum-remaining" style="color:var(--warning)">0</b><span>ยังไม่แสกน</span></div>
-                <div class="sum-card"><b id="sum-notrack" style="color:var(--danger)">0</b><span>ไม่มีเลขพัสดุ</span></div>
+                <div class="sum-card"><b id="sum-notrack" style="color:var(--danger)">0</b><span>ไม่มีเลข</span></div>
                 <div class="sum-card"><b id="sum-total">0</b><span>ทั้งหมด</span></div>
             </div>
     
             <div class="tab-container">
-                <button class="tab-btn active" onclick="showList('REMAIN')">ยังไม่แสกน</button>
-                <button class="tab-btn" onclick="showList('NOTRACK')">ไม่มีเลขพัสดุ</button>
-                <button class="tab-btn" onclick="showList('DONE')">แสกนแล้ว</button>
+                <button id="tab-remain" class="tab-btn active" onclick="showList('REMAIN')">ยังไม่แสกน</button>
+                <button id="tab-notrack" class="tab-btn" onclick="showList('NOTRACK')">ไม่มีเลข</button>
+                <button id="tab-done" class="tab-btn" onclick="showList('DONE')">แสกนแล้ว</button>
             </div>
     
-            <div id="summary-list-area" style="overflow-y: auto; flex-grow: 1;">
-                </div>
-        </div>
-    </div>
-
-    <div id="reader"></div>
-
-    <div id="history-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="margin:0; font-size: 18px;">ประวัติวันนี้</h3>
-                <button onclick="toggleHistory(false)" style="background:#f0f0f0; border:none; padding:8px 15px; border-radius:12px; font-weight:bold;">ปิด</button>
-            </div>
-            <ul id="history-list"></ul>
+            <div id="summary-list-area"></div>
         </div>
     </div>
 
     <div id="dup-modal" class="modal">
         <div class="dup-box">
-            <h2 style="color:#fa8c16; margin-top:0;">⚠️ พบข้อมูลซ้ำ</h2>
+            <h2 id="alert-title" style="margin-top:0;">⚠️ เตือน</h2>
             <p id="dup-text" style="font-size: 16px; color: #555;"></p>
-            <button onclick="closeDup()" style="margin-top:15px; width:100%; padding:14px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold; font-size:16px;">ตกลง</button>
+            <button onclick="closeDup()" style="margin-top:15px; width:100%; padding:14px; background:#333; color:white; border:none; border-radius:15px; font-weight:bold;">ตกลง</button>
         </div>
     </div>
 
     <script>
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        
-        // ดึงชื่อขนส่งจาก URL
         const urlParams = new URLSearchParams(window.location.search);
         const selectedShipping = urlParams.get('shipping');
         
         let html5QrCode;
-        let targetTracks = new Set();    // รายการทั้งหมดที่ต้องสแกน
-        let scannedToday = new Set();    // รายการที่สแกนสำเร็จแล้ว
+        let allOrdersData = []; 
+        let scannedToday = new Set(); 
+        let targetTracks = new Set(); 
         let isPaused = false;
-    
+        let currentTab = 'REMAIN';
+
         window.onload = () => {
-            if (!selectedShipping) {
-                alert("ไม่พบข้อมูลขนส่ง กรุณากลับไปเลือกใหม่");
-                location.href = 'orders.html';
-                return;
-            }
-            
+            if (!selectedShipping) { alert("กรุณาเลือกขนส่งก่อน"); location.href='orders.html'; return; }
+            document.getElementById('sum-shipping-name').innerText = selectedShipping;
+            loadScannerData();
+        };
+
+        function loadScannerData() {
             document.getElementById('scan-status-box').innerText = "กำลังโหลดข้อมูล...";
-            
-            // โหลดข้อมูลเทียบจากฐานข้อมูล
             fetch(`${SCRIPT_URL}?action=getScannerData&shipping=${encodeURIComponent(selectedShipping)}`)
                 .then(r => r.json())
                 .then(data => {
-                    targetTracks = new Set(data.target.map(t => t.toUpperCase()));
-                    // กรองเฉพาะรายการสแกนของวันนี้ที่ "ตรงกับขนส่งที่เลือก"
-                    data.scanned.forEach(t => {
-                        if(targetTracks.has(t)) scannedToday.add(t);
-                    });
+                    allOrdersData = data.orders || [];
+                    scannedToday = new Set((data.scanned || []).map(t => t.toUpperCase()));
+                    
+                    // สร้าง Set สำหรับเทียบตอนแสกน (เฉพาะที่มีเลขพัสดุ)
+                    targetTracks = new Set();
+                    allOrdersData.forEach(o => { if(o.tracking) targetTracks.add(o.tracking.toUpperCase()); });
                     
                     updateCounter();
                     startCamera();
-                });
-        };
-    
-        function updateCounter() {
-            const box = document.getElementById('scan-status-box');
-            box.innerText = `[${selectedShipping}] ${scannedToday.size} / ${targetTracks.size}`;
-            box.style.color = "black";
+                })
+                .catch(err => alert("เกิดข้อผิดพลาดในการโหลดข้อมูล: " + err));
         }
-    
+
+        function updateCounter() {
+            // นับจำนวนที่สแกนแล้วเฉพาะที่ "ตรงกับขนส่งนี้"
+            const scannedCount = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase())).length;
+            const targetCount = targetTracks.size;
+            document.getElementById('scan-status-box').innerText = `[${selectedShipping}] ${scannedCount} / ${targetCount}`;
+            document.getElementById('scan-status-box').style.color = "black";
+        }
+
+        function toggleSummary(show) {
+            document.getElementById('summary-modal').style.display = show ? 'flex' : 'none';
+            isPaused = show;
+            if(show) renderSummary();
+        }
+
+        function renderSummary() {
+            const scannedList = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
+            const remainingList = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
+            const noTrackList = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
+
+            document.getElementById('sum-scanned').innerText = scannedList.length;
+            document.getElementById('sum-remaining').innerText = remainingList.length;
+            document.getElementById('sum-notrack').innerText = noTrackList.length;
+            document.getElementById('sum-total').innerText = allOrdersData.length;
+
+            showList(currentTab);
+        }
+
+        function showList(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tab.toLowerCase()).classList.add('active');
+
+            const listArea = document.getElementById('summary-list-area');
+            let list = [];
+
+            if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !scannedToday.has(o.tracking.toUpperCase()));
+            if (tab === 'NOTRACK') list = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
+            if (tab === 'DONE') list = allOrdersData.filter(o => o.tracking && scannedToday.has(o.tracking.toUpperCase()));
+
+            if (list.length === 0) {
+                listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
+                return;
+            }
+
+            listArea.innerHTML = list.map(o => `
+                <div class="list-item">
+                    <div>
+                        <span class="plt" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
+                        <b>${o.tracking || 'ไม่มีเลขพัสดุ'}</b>
+                    </div>
+                    <div style="color:#888; font-size:11px;">${o.status}</div>
+                </div>
+            `).join('');
+        }
+
         function onScanSuccess(decodedText) {
             if (isPaused) return;
             const code = String(decodedText).trim().toUpperCase();
-        
-            // 1. ตรวจสอบว่ามีในรายการไหม
+
             if (!targetTracks.has(code)) {
-                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f");
+                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f", "❌ ไม่พบข้อมูล");
                 return;
             }
-        
-            // 2. ตรวจสอบว่าซ้ำไหม
+
             if (scannedToday.has(code)) {
-                handleError("⚠️ สแกนซ้ำไปแล้ว!", "#fa8c16");
+                handleError("เลขพัสดุนี้สแกนบันทึกไปแล้ว", "#fa8c16", "⚠️ สแกนซ้ำ");
                 return;
             }
-        
-            // 3. สแกนสำเร็จ
+
+            // สำเร็จ
             isPaused = true;
             scannedToday.add(code);
             playBeep('success');
             
-            const box = document.getElementById('scan-status-box');
-            box.innerText = `✅ บันทึกแล้ว: ${code}`;
-            box.style.color = "var(--success)";
+            document.getElementById('scan-status-box').innerText = "✅ บันทึกแล้ว: " + code;
+            document.getElementById('scan-status-box').style.color = "var(--success)";
             
-            // 🚀 ส่งข้อมูลไปบันทึกใน check TN (เพิ่ม action=scan เพื่อความแม่นยำ)
-            const saveUrl = `${SCRIPT_URL}?action=scan&tracking=${encodeURIComponent(code)}`;
-            
-            fetch(saveUrl, { mode: 'no-cors' }) // ใช้ no-cors เพื่อส่งข้อมูลให้ถึง Server แน่นอน
-                .catch(err => console.error("Save error:", err));
-        
+            fetch(`${SCRIPT_URL}?action=scan&tracking=${encodeURIComponent(code)}`, { mode: 'no-cors' });
+
             setTimeout(() => {
                 isPaused = false;
                 updateCounter();
             }, 1500);
         }
-    
-        function handleError(msg, bgColor) {
+
+        function handleError(msg, bgColor, title) {
             isPaused = true;
             playBeep('error');
-            
-            // เปลี่ยนพื้นหลังหน้าจอเป็นสีตาม Error
-            const overlay = document.getElementById('scanner-overlay') || document.body;
-            const originalBG = overlay.style.background;
-            overlay.style.background = bgColor;
-    
+            document.body.style.background = bgColor;
+            document.getElementById('alert-title').innerText = title;
             document.getElementById('dup-text').innerText = msg;
             document.getElementById('dup-modal').style.display = 'flex';
         }
-    
+
         function closeDup() {
             document.getElementById('dup-modal').style.display = 'none';
-            document.body.style.background = "#000"; // รีเซ็ตพื้นหลังเป็นสีดำปกติ
-            setTimeout(() => { isPaused = false; }, 500);
+            document.body.style.background = "#000";
+            setTimeout(() => isPaused = false, 500);
         }
-    
+
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
         }
-    
+
         function playBeep(type) {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
