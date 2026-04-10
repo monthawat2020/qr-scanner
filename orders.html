@@ -5,16 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>จัดการคำสั่งซื้อ</title>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --bg: #f0f2f5; --shopee: #ee4d2d; --tiktok: #000; }
+        :root { 
+            --primary: #007bff; --success: #28a745; --warning: #ffc107; --danger: #dc3545; --bg: #f0f2f5; 
+        }
         body, html { margin: 0; padding: 0; min-height: 100dvh; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; }
         .header { background: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .content { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         
-        /* Dashboard */
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .card { background: white; padding: 20px 10px; border-radius: 18px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
-        .card h4 { margin: 0; font-size: 12px; color: #666; }
-        .card p { margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
+        /* ปรับ Dashboard เป็น 2x2 */
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .card { background: white; padding: 15px 5px; border-radius: 15px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
+        .card h4 { margin: 0; font-size: 11px; color: #888; text-transform: uppercase; }
+        .card p { margin: 5px 0 0 0; font-size: 22px; font-weight: bold; }
 
         /* Sections */
         .section { background: white; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -34,6 +36,11 @@
         .tag-tiktok { background: var(--tiktok); }
         .tag-shopee { background: var(--shopee); }
 
+        .c-total { color: var(--primary); }
+        .c-scanned { color: var(--success); border-bottom: 4px solid var(--success); }
+        .c-remaining { color: var(--warning); border-bottom: 4px solid var(--warning); }
+        .c-cancelled { color: var(--danger); border-bottom: 4px solid var(--danger); }
+
         .btn-go-scan { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: var(--success); color: white; text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold; position: sticky; bottom: 20px; }
     </style>
 </head>
@@ -46,8 +53,10 @@
 
     <div class="content">
         <div class="dashboard">
-            <div class="card"><h4>เป้าหมายวันนี้</h4><p id="stat-total">0</p></div>
-            <div class="card"><h4>สแกนแล้ว</h4><p id="stat-scanned">0</p></div>
+            <div class="card"><h4 style="color:var(--primary)">เป้าหมาย</h4><p id="stat-total" class="c-total">0</p></div>
+            <div class="card"><h4 style="color:var(--success)">แสกนแล้ว</h4><p id="stat-scanned" class="c-scanned">0</p></div>
+            <div class="card"><h4 style="color:var(--warning)">เหลือ</h4><p id="stat-remaining" class="c-remaining">0</p></div>
+            <div class="card"><h4 style="color:var(--danger)">ยกเลิก</h4><p id="stat-cancelled" class="c-cancelled">0</p></div>
         </div>
 
         <div class="section" style="text-align: center;">
@@ -58,15 +67,27 @@
             <button id="submit-upload" style="display:none; margin-top:15px; width:100%; padding:12px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold;" onclick="uploadToServer()">เริ่มอัปโหลด</button>
         </div>
 
-        <div class="section">
-            <h3 style="margin: 0 0 10px 0; font-size: 16px;">🔍 กรองตามขนส่ง</h3>
-            <select id="shipping-select" onchange="loadOrdersData()" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; outline: none;">
-                <option value="">กำลังโหลดรายชื่อขนส่ง...</option>
-            </select>
+        <div class="section" style="background:white; padding:15px; border-radius:18px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="font-size:11px; color:#888;">ขนส่ง</label>
+                    <select id="shipping-select" onchange="loadOrdersData()" style="width:100%; padding:10px; border-radius:8px; border:1/1px solid #ddd;">
+                        <option value="">-- เลือกขนส่ง --</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:11px; color:#888;">สถานะ</label>
+                    <select id="status-filter" onchange="renderFilteredOrders()" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd;">
+                        <option value="ALL">ทั้งหมด</option>
+                        <option value="PENDING">ยังไม่แสกน</option>
+                        <option value="DONE">แสกนแล้ว</option>
+                        <option value="CANCEL">ยกเลิก</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <div id="order-list-area" class="order-list-area">
-            </div>
+        <div id="order-list-area" class="order-list-area"></div>>
 
         <button onclick="goToScanner()" class="btn-go-scan" style="border:none; width:100%; cursor:pointer;">
             📷 เปิดกล้องสแกนพัสดุ
@@ -77,6 +98,8 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
         let parsedData = [];
         let detectedPlatform = "";
+
+        let currentOrders = []; // เก็บข้อมูลออเดอร์ทั้งหมดของขนส่งที่เลือกไว้กรองในเครื่อง
 
         window.onload = () => {
             // โหลดสถิติรวมของทั้งระบบ (Optional: ถ้าต้องการให้หน้าแรกโชว์ยอดรวม Picked up ทั้งหมด)
@@ -164,63 +187,75 @@
         function loadOrdersData() {
             const shipping = document.getElementById('shipping-select').value;
             const listArea = document.getElementById('order-list-area');
-            const totalCard = document.getElementById('stat-total');
-            const scannedCard = document.getElementById('stat-scanned');
+            if (!shipping) { resetStats(); return; }
         
-            if (!shipping) {
-                listArea.innerHTML = '';
-                totalCard.innerText = '0';
-                scannedCard.innerText = '0';
+            listArea.innerHTML = '<p style="text-align:center;">กำลังโหลด...</p>';
+        
+            fetch(`${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`)
+                .then(res => res.json())
+                .then(orders => {
+                    currentOrders = orders; // เก็บไว้ในตัวแปร Global
+                    updateDashboard(orders);
+                    renderFilteredOrders(); // แสดงรายการตามตัวกรองปัจจุบัน
+                });
+        }
+
+        function updateDashboard(orders) {
+            const total = orders.length;
+            const scanned = orders.filter(o => o.isPickedUp).length;
+            const cancelled = orders.filter(o => o.isCancelled).length;
+            const remaining = total - scanned - cancelled;
+        
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-scanned').innerText = scanned;
+            document.getElementById('stat-cancelled').innerText = cancelled;
+            document.getElementById('stat-remaining').innerText = remaining >= 0 ? remaining : 0;
+        }
+
+        function renderFilteredOrders() {
+            const filter = document.getElementById('status-filter').value;
+            const listArea = document.getElementById('order-list-area');
+            
+            let filtered = currentOrders;
+            if (filter === "PENDING") filtered = currentOrders.filter(o => !o.isPickedUp && !o.isCancelled);
+            if (filter === "DONE") filtered = currentOrders.filter(o => o.isPickedUp);
+            if (filter === "CANCEL") filtered = currentOrders.filter(o => o.isCancelled);
+        
+            if (filtered.length === 0) {
+                listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">ไม่พบรายการ</p>';
                 return;
             }
         
-            listArea.innerHTML = '<p style="text-align:center; color:#999;">กำลังโหลดรายการออเดอร์...</p>';
+            listArea.innerHTML = filtered.map(order => {
+                let borderColor = "#ddd";
+                let statusText = "○ PENDING";
+                let textColor = "#888";
         
-            // ใช้ encodeURIComponent เพื่อจัดการกับอักขระพิเศษอย่าง & ใน J&T
-            const url = `${SCRIPT_URL}?action=getOrdersData&shipping=${encodeURIComponent(shipping)}`;
+                if (order.isPickedUp) { borderColor = "var(--success)"; statusText = "● SCAN DONE"; textColor = "var(--success)"; }
+                else if (order.isCancelled) { borderColor = "var(--danger)"; statusText = "✖ CANCELLED"; textColor = "var(--danger)"; }
         
-            fetch(url)
-                .then(res => {
-                    if (!res.ok) throw new Error('Network response was not ok');
-                    return res.json();
-                })
-                .then(orders => {
-                    if (orders.error) {
-                        alert("Apps Script Error: " + orders.error);
-                        return;
-                    }
-                    
-                    // กรองสถานะ Picked up
-                    const pickedUpOrders = orders.filter(o => o.status === 'Picked up' || o.status === 'สำเร็จแล้ว');
-                    
-                    totalCard.innerText = orders.length;
-                    scannedCard.innerText = pickedUpOrders.length;
-        
-                    if (orders.length === 0) {
-                        listArea.innerHTML = '<p style="text-align:center; color:#999;">ไม่พบรายการออเดอร์</p>';
-                        return;
-                    }
-        
-                    listArea.innerHTML = orders.map(order => `
-                        <div class="order-item" style="border-left: 5px solid ${order.status === 'Picked up' ? 'var(--success)' : '#ddd'}">
-                            <div style="grid-column: span 2; display: flex; justify-content: space-between;">
-                                <div>
-                                    <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
-                                    <span style="margin-left:5px; font-weight:bold;">${order.shipping}</span>
-                                </div>
-                                <div style="font-size: 11px; font-weight: bold; color: ${order.status === 'Picked up' ? 'var(--success)' : '#888'}">
-                                    ${order.status === 'Picked up' ? '● SCAN DONE' : '○ PENDING'}
-                                </div>
+                return `
+                    <div class="order-item" style="border-left: 5px solid ${borderColor}; opacity: ${order.isCancelled ? '0.6' : '1'}">
+                        <div style="grid-column: span 2; display: flex; justify-content: space-between;">
+                            <div>
+                                <span class="tag ${order.platform === 'Tiktok' ? 'tag-tiktok' : 'tag-shopee'}">${order.platform}</span>
+                                <span style="margin-left:5px; font-weight:bold;">${order.shipping}</span>
                             </div>
-                            <div>เลขพัสดุ:<br><b>${order.tracking}</b></div>
-                            <div style="text-align:right;">สถานะ:<br><b style="color:${order.status === 'Picked up' ? 'var(--success)' : '#555'}">${order.status}</b></div>
+                            <div style="font-size: 11px; font-weight: bold; color: ${textColor}">${statusText}</div>
                         </div>
-                    `).join('');
-                })
-                .catch(err => {
-                    console.error("Fetch Error:", err);
-                    listArea.innerHTML = '<p style="text-align:center; color:red;">โหลดข้อมูลล้มเหลว (CORS/Server Error)</p>';
-                });
+                        <div>เลขพัสดุ:<br><b>${order.tracking}</b></div>
+                        <div style="text-align:right;">สถานะ:<br><b style="color:${textColor}">${order.status}</b></div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function resetStats() {
+            document.getElementById('stat-total').innerText = '0';
+            document.getElementById('stat-scanned').innerText = '0';
+            document.getElementById('stat-remaining').innerText = '0';
+            document.getElementById('stat-cancelled').innerText = '0';
+            document.getElementById('order-list-area').innerHTML = '';
         }
 
         function goToScanner() {
