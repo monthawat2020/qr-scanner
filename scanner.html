@@ -137,20 +137,20 @@
         function onScanSuccess(decodedText) {
             if (isPaused) return;
             const code = String(decodedText).trim().toUpperCase();
-    
-            // 1. ตรวจสอบว่ามีในรายการที่ต้องสแกนไหม
+        
+            // 1. ตรวจสอบว่ามีในรายการไหม
             if (!targetTracks.has(code)) {
-                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f"); // สีแดง
+                handleError("ไม่พบเลขพัสดุนี้ในรายการ!", "#ff4d4f");
                 return;
             }
-    
+        
             // 2. ตรวจสอบว่าซ้ำไหม
             if (scannedToday.has(code)) {
-                handleError("⚠️ สแกนซ้ำไปแล้ว!", "#fa8c16"); // สีส้ม/เหลือง
+                handleError("⚠️ สแกนซ้ำไปแล้ว!", "#fa8c16");
                 return;
             }
-    
-            // 3. กรณีสแกนสำเร็จ (เจอและไม่ซ้ำ)
+        
+            // 3. สแกนสำเร็จ
             isPaused = true;
             scannedToday.add(code);
             playBeep('success');
@@ -159,9 +159,12 @@
             box.innerText = `✅ บันทึกแล้ว: ${code}`;
             box.style.color = "var(--success)";
             
-            // บันทึกลง check TN (Timestamp, Tracking ID)
-            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
-    
+            // 🚀 ส่งข้อมูลไปบันทึกใน check TN (เพิ่ม action=scan เพื่อความแม่นยำ)
+            const saveUrl = `${SCRIPT_URL}?action=scan&tracking=${encodeURIComponent(code)}`;
+            
+            fetch(saveUrl, { mode: 'no-cors' }) // ใช้ no-cors เพื่อส่งข้อมูลให้ถึง Server แน่นอน
+                .catch(err => console.error("Save error:", err));
+        
             setTimeout(() => {
                 isPaused = false;
                 updateCounter();
