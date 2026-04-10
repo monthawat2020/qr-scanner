@@ -166,6 +166,45 @@
                 btn.innerText = "ลองใหม่อีกครั้ง";
             });
         }
+
+        function updateShippingOptions() {
+            const platform = document.getElementById('platform-select').value;
+            const shippingSelect = document.getElementById('shipping-select');
+            
+            // รีเซ็ตค่าเริ่มต้น
+            shippingSelect.innerHTML = '<option value="">กำลังโหลดข้อมูล...</option>';
+            shippingSelect.disabled = true;
+            shippingSelect.style.background = "#f9f9f9";
+        
+            if (!platform) {
+                shippingSelect.innerHTML = '<option value="">-- กรุณาเลือกแพลตฟอร์มก่อน --</option>';
+                return;
+            }
+        
+            // เรียกข้อมูลจาก Apps Script
+            fetch(`${SCRIPT_URL}?action=getShippingData&platform=${platform}`)
+                .then(res => res.json())
+                .then(providers => {
+                    shippingSelect.innerHTML = '<option value="">-- เลือกขนส่ง --</option>';
+                    
+                    if (providers.length === 0) {
+                        shippingSelect.innerHTML = '<option value="">ไม่พบข้อมูลขนส่ง</option>';
+                    } else {
+                        providers.forEach(name => {
+                            const opt = document.createElement('option');
+                            opt.value = name;
+                            opt.textContent = name;
+                            shippingSelect.appendChild(opt);
+                        });
+                        shippingSelect.disabled = false;
+                        shippingSelect.style.background = "#fff";
+                    }
+                })
+                .catch(err => {
+                    console.error("Error fetching shipping:", err);
+                    shippingSelect.innerHTML = '<option value="">โหลดข้อมูลล้มเหลว</option>';
+                });
+        }
     </script>
 </body>
 </html>
