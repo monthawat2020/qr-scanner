@@ -68,7 +68,9 @@
         <div id="order-list-area" class="order-list-area">
             </div>
 
-        <a href="scanner.html" class="btn-go-scan">📷 เปิดกล้องสแกนพัสดุ</a>
+        <button onclick="goToScanner()" class="btn-go-scan" style="border:none; width:100%; cursor:pointer;">
+            📷 เปิดกล้องสแกนพัสดุ
+        </button>
     </div>
 
     <script>
@@ -219,6 +221,16 @@
                     console.error("Fetch Error:", err);
                     listArea.innerHTML = '<p style="text-align:center; color:red;">โหลดข้อมูลล้มเหลว (CORS/Server Error)</p>';
                 });
+        }
+
+        function goToScanner() {
+            const shipping = document.getElementById('shipping-select').value;
+            if (!shipping) {
+                alert("กรุณาเลือกขนส่งก่อนเริ่มสแกนครับ");
+                return;
+            }
+            // ส่งชื่อขนส่งไปที่หน้า scanner.html ผ่าน URL
+            window.location.href = `scanner.html?shipping=${encodeURIComponent(shipping)}`;
         }
     </script>
 </body>
