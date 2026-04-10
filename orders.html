@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ระบบจัดการคำสั่งซื้อ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         :root { 
             --primary: #4361ee; --success: #2ec4b6; --warning: #ff9f1c; --danger: #e71d36;
@@ -28,11 +30,26 @@
 
         /* ปุ่ม Import บน Header */
         .btn-header-import {
-            background: #f0f2f5; border: none; padding: 8px 12px; border-radius: 10px;
-            font-size: 12px; font-weight: 700; color: var(--text-main);
-            display: flex; align-items: center; gap: 6px; cursor: pointer;
+            background: #f0f2f5; 
+            border: none; 
+            padding: 10px 15px; /* ปรับขนาดให้กดง่ายขึ้นเล็กน้อย */
+            border-radius: 12px;
+            font-size: 13px; 
+            font-weight: 700; 
+            color: var(--primary); /* เปลี่ยนสีข้อความให้เด่นขึ้นตามโทนหลัก */
+            display: flex; 
+            align-items: center; 
+            gap: 8px; /* เว้นระยะไอคอนกับข้อความ */
+            cursor: pointer;
+            transition: 0.2s;
         }
-        .btn-header-import:active { background: #e2e8f0; }
+        .btn-header-import i {
+            font-size: 14px;
+        }
+        .btn-header-import:active { 
+            background: #e2e8f0; 
+            transform: scale(0.95);
+        }
 
         .content { 
             padding: 20px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; 
@@ -99,7 +116,7 @@
             <h2>X SHOP</h2>
         </div>
         <button class="btn-header-import" onclick="toggleUploadModal(true)">
-            <span>📄</span> Import CSV
+            <i class="fa-solid fa-file-import"></i> CSV
         </button>
     </header>
 
