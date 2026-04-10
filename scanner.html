@@ -136,6 +136,7 @@
         const selectedShipping = urlParams.get('shipping');
         
         let html5QrCode, allOrdersData = [], scannedToday = new Set(), targetTracks = new Set();
+        let unknownScans = new Set(); // 🆕 เก็บเลขพัสดุที่แสกนแล้วไม่พบในระบบ
         let isPaused = false, currentTab = 'REMAIN';
 
         window.onload = () => {
@@ -144,12 +145,9 @@
             loadScannerData();
         };
 
-        // --- ฟังก์ชันหลักสำหรับเช็คว่าออเดอร์นี้ "เสร็จหรือยัง" ---
         function isOrderDone(order) {
             if (!order.tracking) return false;
-            const trackClean = order.tracking.toUpperCase();
-            // เงื่อนไข: สแกนวันนี้แล้ว OR สถานะใน DB เป็น Picked up อยู่แล้ว
-            return scannedToday.has(trackClean) || order.status === 'Picked up';
+            return scannedToday.has(order.tracking.toUpperCase()) || order.status === 'Picked up';
         }
 
         function loadScannerData() {
@@ -170,7 +168,6 @@
         }
 
         function updateCounter() {
-            // นับออเดอร์ที่เสร็จแล้ว (ใช้ฟังก์ชัน isOrderDone)
             const scannedCount = allOrdersData.filter(o => isOrderDone(o)).length;
             const targetCount = targetTracks.size;
             const percent = targetCount > 0 ? Math.round((scannedCount / targetCount) * 100) : 0;
@@ -192,16 +189,14 @@
         }
 
         function renderSummary() {
-            // แยกกลุ่มด้วย Logic ใหม่
             const scannedList = allOrdersData.filter(o => isOrderDone(o));
             const remainingList = allOrdersData.filter(o => o.tracking && !isOrderDone(o));
-            const noTrackList = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
-
+            
             const safeSet = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
 
             safeSet('sum-scanned', scannedList.length);
             safeSet('sum-remaining', remainingList.length);
-            safeSet('sum-notrack', noTrackList.length);
+            safeSet('sum-notrack', unknownScans.size); // 🆕 แสดงจำนวนรายการที่แสกนแล้วไม่พบข้อมูล
             safeSet('sum-total', allOrdersData.length);
             
             showList(currentTab);
@@ -214,42 +209,53 @@
             if(btn) btn.classList.add('active');
 
             const listArea = document.getElementById('summary-list-area');
-            let list = [];
+            let content = "";
 
-            if (tab === 'REMAIN') list = allOrdersData.filter(o => o.tracking && !isOrderDone(o));
-            if (tab === 'NOTRACK') list = allOrdersData.filter(o => !o.tracking || o.tracking.trim() === "");
-            if (tab === 'DONE') list = allOrdersData.filter(o => isOrderDone(o));
-
-            if (list.length === 0) {
-                listArea.innerHTML = '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
-                return;
+            if (tab === 'REMAIN') {
+                const list = allOrdersData.filter(o => o.tracking && !isOrderDone(o));
+                content = list.map(o => itemHtml(o.platform, o.tracking, o.status, '#999')).join('');
+            } 
+            else if (tab === 'NOTRACK') {
+                // 🆕 แสดงรายการที่พนักงานแสกน แต่ไม่มีใน Google Sheet
+                const list = Array.from(unknownScans);
+                content = list.map(code => itemHtml('UNKNOWN', code, 'ไม่พบในระบบ', 'var(--danger)')).join('');
+            } 
+            else if (tab === 'DONE') {
+                const list = allOrdersData.filter(o => isOrderDone(o));
+                content = list.map(o => itemHtml(o.platform, o.tracking, o.status, 'var(--success)')).join('');
             }
 
-            listArea.innerHTML = list.map(o => `
+            listArea.innerHTML = content || '<p style="text-align:center; color:#999; margin-top:30px;">ไม่มีรายการ</p>';
+        }
+
+        // ฟังก์ชันช่วยสร้าง HTML ของแต่ละรายการ
+        function itemHtml(platform, tracking, status, statusColor) {
+            const pltColor = platform === 'Tiktok' ? '#000' : (platform === 'Shopee' ? '#ee4d2d' : '#888');
+            return `
                 <div class="list-item">
                     <div>
-                        <span class="plt-tag" style="background:${o.platform === 'Tiktok' ? '#000' : '#ee4d2d'}">${o.platform}</span>
-                        <b>${o.tracking || '---'}</b>
+                        <span class="plt-tag" style="background:${pltColor}">${platform}</span>
+                        <b>${tracking || '---'}</b>
                     </div>
-                    <div style="font-size:11px; font-weight:bold; color:${o.status === 'Picked up' ? 'var(--success)' : '#999'};">
-                        ${o.status}
+                    <div style="font-size:11px; font-weight:bold; color:${statusColor};">
+                        ${status}
                     </div>
                 </div>
-            `).join('');
+            `;
         }
 
         function onScanSuccess(decodedText) {
             if (isPaused) return;
             const code = String(decodedText).trim().toUpperCase();
 
+            // 🆕 ตรวจสอบว่ามีในระบบไหม
             if (!targetTracks.has(code)) {
+                unknownScans.add(code); // บันทึกไว้แสดงในหมวด "ไม่พบข้อมูล"
                 showAlert("ไม่พบเลขพัสดุนี้ในรายการ!", "❌ ไม่พบข้อมูล", "⛔");
                 return;
             }
 
-            // เช็คว่าเคยแสกนไปหรือยัง (รวมถึงสถานะ Picked up ในระบบด้วย)
             const isAlreadyDone = allOrdersData.some(o => o.tracking && o.tracking.toUpperCase() === code && isOrderDone(o));
-            
             if (isAlreadyDone) {
                 showAlert("เลขพัสดุนี้ถูกบันทึก Picked up ไปแล้ว", "⚠️ สแกนซ้ำ", "🔄");
                 return;
