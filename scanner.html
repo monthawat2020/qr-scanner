@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เครื่องสแกนพัสดุ</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root { --danger: #dc3545; --warning: #ffc107; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        
+        #reader { width: 100vw; height: 100vh; }
+        
+        /* UI บนหน้าจอแสกน */
+        .btn-exit { position: fixed; top: 20px; right: 20px; z-index: 10; background: var(--danger); color: white; border: none; padding: 12px 20px; border-radius: 12px; font-weight: bold; }
+        .btn-history { position: fixed; bottom: 30px; left: 20px; z-index: 10; background: rgba(255,255,255,0.9); padding: 15px 25px; border-radius: 30px; border: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        #scan-status-box { position: fixed; top: 25px; left: 50%; transform: translateX(-50%); z-index: 5; width: 60%; background: rgba(255,255,255,0.9); padding: 12px; border-radius: 30px; text-align: center; font-weight: bold; font-size: 14px; }
+
+        /* Modal ประวัติ */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: white; width: 85%; max-width: 400px; height: 60vh; border-radius: 25px; padding: 20px; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        #history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        #history-list li { padding: 12px 0; border-bottom: 1px dashed #eee; }
+
+        /* แจ้งเตือนซ้ำ */
+        .dup-box { background: var(--warning); padding: 30px; border-radius: 25px; text-align: center; width: 80%; border: 5px solid #ffa000; }
+    </style>
+</head>
+<body>
+
+    <div id="scan-status-box">กำลังโหลดข้อมูล...</div>
+    <button class="btn-exit" onclick="location.href='orders.html'">X ออก</button>
+    <button class="btn-history" onclick="toggleHistory(true)">🕒 ประวัติ</button>
+
+    <div id="reader"></div>
+
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0;">ประวัติวันนี้</h3>
+                <button onclick="toggleHistory(false)" style="background:#333; color:white; border:none; padding:8px 15px; border-radius:10px;">ปิด</button>
+            </div>
+            <ul id="history-list"></ul>
+        </div>
+    </div>
+
+    <div id="dup-modal" class="modal">
+        <div class="dup-box">
+            <h2>⚠️ ข้อมูลซ้ำ!</h2>
+            <p id="dup-text" style="font-size: 18px;"></p>
+            <button onclick="closeDup()" style="padding:12px 30px; background:#333; color:white; border:none; border-radius:30px; font-weight:bold;">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
+        let html5QrCode;
+        let scannedCodes = new Set();
+        let isPaused = false;
+
+        // 1. โหลดข้อมูลก่อนเริ่มสแกน
+        window.onload = () => {
+            fetch(SCRIPT_URL + '?action=getToday')
+                .then(r => r.json())
+                .then(data => {
+                    scannedCodes = new Set(data.map(c => String(c).trim().toUpperCase()));
+                    document.getElementById('scan-status-box').innerText = "พร้อมสแกน";
+                    startCamera();
+                });
+        };
+
+        function startCamera() {
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+        }
+
+        function toggleHistory(show) {
+            document.getElementById('history-modal').style.display = show ? 'flex' : 'none';
+            isPaused = show;
+            if(show) {
+                const list = document.getElementById('history-list');
+                const arr = Array.from(scannedCodes).reverse();
+                list.innerHTML = arr.length ? arr.map(c => `<li>✅ ${c}</li>`).join('') : '<li>ไม่มีข้อมูล</li>';
+            }
+        }
+
+        function onScanSuccess(decodedText) {
+            if (isPaused) return;
+            const code = String(decodedText).trim().toUpperCase();
+
+            if (scannedCodes.has(code)) {
+                isPaused = true;
+                playBeep('error');
+                document.getElementById('dup-text').innerText = "เลข " + code + " สแกนไปแล้ว";
+                document.getElementById('dup-modal').style.display = 'flex';
+                return;
+            }
+
+            isPaused = true;
+            scannedCodes.add(code);
+            playBeep('success');
+            document.getElementById('scan-status-box').innerText = "✅ บันทึกแล้ว: " + code;
+            
+            fetch(SCRIPT_URL + '?tracking=' + encodeURIComponent(code));
+
+            setTimeout(() => {
+                if(document.getElementById('history-modal').style.display !== 'flex' && 
+                   document.getElementById('dup-modal').style.display !== 'flex') {
+                    isPaused = false;
+                    document.getElementById('scan-status-box').innerText = "พร้อมสแกนต่อไป";
+                }
+            }, 1500);
+        }
+
+        function playBeep(type) {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.type = type === 'success' ? 'sine' : 'sawtooth';
+            osc.frequency.value = type === 'success' ? 800 : 200;
+            osc.connect(ctx.destination);
+            osc.start();
+            setTimeout(() => osc.stop(), 150);
+        }
+
+        function closeDup() {
+            document.getElementById('dup-modal').style.display = 'none';
+            setTimeout(() => isPaused = false, 500);
+        }
+    </script>
+</body>
+</html>
