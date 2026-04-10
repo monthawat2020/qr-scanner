@@ -6,90 +6,116 @@
     <title>จัดการคำสั่งซื้อ</title>
     <style>
         :root { --primary: #007bff; --success: #28a745; --bg: #f0f2f5; }
+        body, html { margin: 0; padding: 0; min-height: 100dvh; font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; }
+        .header { background: white; padding: 15px 20px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .content { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         
-        body, html { 
-            margin: 0; padding: 0; 
-            min-height: 100vh; min-height: 100dvh;
-            font-family: -apple-system, sans-serif; 
-            background: var(--bg);
-            display: flex; flex-direction: column;
-        }
-
-        /* Header: ฟิกไว้ด้านบน */
-        .header { 
-            background: white; padding: 15px 20px; 
-            display: flex; align-items: center; gap: 15px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            flex-shrink: 0;
-        }
-        .btn-back { text-decoration: none; font-size: 22px; color: #333; padding: 5px; }
-
-        /* Content: ยืดหยุ่นตามหน้าจอ */
-        .content { 
-            flex-grow: 1; padding: 20px; 
-            display: flex; flex-direction: column; 
-            gap: 20px; box-sizing: border-box;
-            max-width: 500px; margin: 0 auto; width: 100%;
-        }
-
-        /* Dashboard Cards: ปรับให้ไม่ล้น */
-        .dashboard { 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; 
-        }
-        .card { 
-            background: white; padding: 20px 10px; border-radius: 18px; 
-            text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .card h4 { margin: 0; color: #888; font-size: 12px; text-transform: uppercase; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { background: white; padding: 20px 10px; border-radius: 18px; text-align: center; border: 1px solid rgba(0,0,0,0.05); }
         .card p { margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: var(--primary); }
-        
-        /* ปุ่มเปิดกล้อง: ปรับให้เด่นและพอดีความกว้าง */
-        .btn-go-scan { 
-            margin-top: auto; /* ดันปุ่มลงล่างสุดของพื้นที่ว่าง */
-            display: flex; align-items: center; justify-content: center; gap: 12px;
-            padding: 18px; background: var(--success); color: white; 
-            text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold;
-            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); transition: 0.2s;
-        }
-        .btn-go-scan:active { transform: scale(0.97); opacity: 0.9; }
+
+        /* ส่วนอัปโหลดไฟล์ */
+        .upload-section { background: white; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; }
+        #file-input { display: none; }
+        .btn-upload { display: inline-block; padding: 12px 25px; background: #6f42c1; color: white; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .file-info { margin-top: 10px; font-size: 13px; color: #666; }
+
+        .btn-go-scan { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 18px; background: var(--success); color: white; text-decoration: none; border-radius: 18px; font-size: 18px; font-weight: bold; box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3); }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <a href="index.html" class="btn-back">⬅</a>
+        <a href="index.html" style="text-decoration:none; color:#333;">⬅</a>
         <h2 style="margin:0; font-size: 18px;">จัดการคำสั่งซื้อ</h2>
     </div>
 
     <div class="content">
         <div class="dashboard">
-            <div class="card">
-                <h4>เป้าหมายวันนี้</h4>
-                <p>--</p>
-            </div>
-            <div class="card">
-                <h4>สแกนแล้ว</h4>
-                <p id="stat-scanned">0</p>
-            </div>
+            <div class="card"><h4>เป้าหมายวันนี้</h4><p>--</p></div>
+            <div class="card"><h4>สแกนแล้ว</h4><p id="stat-scanned">0</p></div>
         </div>
 
-        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #aaa; font-style: italic;">
-            <p>พร้อมเริ่มงานหรือยัง?</p>
+        <div class="upload-section">
+            <h3 style="margin:0 0 10px 0; font-size: 16px;">📁 นำเข้าข้อมูลคำสั่งซื้อ</h3>
+            <label for="file-input" class="btn-upload">เลือกไฟล์ CSV</label>
+            <input type="file" id="file-input" accept=".csv" onchange="handleFile(this)">
+            <div id="file-info" class="file-info">ยังไม่ได้เลือกไฟล์</div>
+            <button id="submit-upload" style="display:none; margin-top:15px; width:100%; padding:10px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:bold;" onclick="uploadToServer()">เริ่มอัปโหลดเข้า Sheet</button>
         </div>
 
-        <a href="scanner.html" class="btn-go-scan">
-            <span>📷 เปิดกล้องสแกนพัสดุ</span>
-        </a>
+        <a href="scanner.html" class="btn-go-scan">📷 เปิดกล้องสแกนพัสดุ</a>
     </div>
 
     <script>
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbximNNkb_3daJpWHs2Virt9jphxQi7JlpA6gSpyCgrPwd1TqHvXD-49cjgG8HBEdk93bQ/exec';
-        window.onload = () => {
-            fetch(SCRIPT_URL + '?action=getToday').then(r => r.json()).then(data => {
-                document.getElementById('stat-scanned').innerText = data.length;
+        const SCRIPT_URL = 'ใส่_URL_APPS_SCRIPT_ใหม่_ตรงนี้';
+        let parsedData = [];
+        let detectedPlatform = "";
+
+        // 1. ตรวจสอบไฟล์และการแยกแพลตฟอร์ม
+        function handleFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const fileName = file.name.toLowerCase();
+            document.getElementById('file-info').innerText = `ไฟล์: ${file.name}`;
+            
+            // แยกแพลตฟอร์มตามชื่อไฟล์ yymmdd-platform-x
+            if (fileName.includes('tiktok')) detectedPlatform = 'tiktok';
+            else if (fileName.includes('shopee')) detectedPlatform = 'shopee';
+            else {
+                alert("ไม่สามารถระบุแพลตฟอร์มได้ กรุณาตั้งชื่อไฟล์ให้มีคำว่า tiktok หรือ shopee");
+                return;
+            }
+
+            // อ่านข้อมูลในไฟล์ (CSV)
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parsedData = parseCSV(text);
+                document.getElementById('submit-upload').style.display = 'block';
+                document.getElementById('submit-upload').innerText = `อัปโหลดไปยัง ${detectedPlatform}_DB (${parsedData.length} รายการ)`;
+            };
+            reader.readAsText(file);
+        }
+
+        // 2. ฟังก์ชันช่วยอ่าน CSV (รองรับเครื่องหมายคำพูด)
+        function parseCSV(str) {
+            const rows = [];
+            const lines = str.split(/\r?\n/);
+            for (let i = 1; i < lines.length; i++) { // ข้ามหัวตาราง
+                if (lines[i].trim() === "") continue;
+                // แยกด้วย comma แต่ต้องไม่แยก comma ที่อยู่ในฟันหนู " "
+                const cols = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                if (cols) rows.push(cols.map(c => c.replace(/"/g, '')));
+            }
+            return rows;
+        }
+
+        // 3. ส่งข้อมูลไป Google Sheets
+        function uploadToServer() {
+            const btn = document.getElementById('submit-upload');
+            btn.disabled = true;
+            btn.innerText = "กำลังอัปโหลด...";
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'uploadData',
+                    platform: detectedPlatform,
+                    data: parsedData
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                alert(`สำเร็จ! ข้อมูลถูกบันทึกใน ${res.sheet} เรียบร้อยแล้ว`);
+                location.reload();
+            })
+            .catch(err => {
+                alert("เกิดข้อผิดพลาดในการอัปโหลด");
+                btn.disabled = false;
             });
-        };
+        }
     </script>
 </body>
 </html>
